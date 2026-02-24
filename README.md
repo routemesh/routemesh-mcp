@@ -1,18 +1,23 @@
 # RouteMesh MCP Server
 
-`@routemesh/mcp` is a local stdio MCP server that lets AI assistants and other MCP clients talk to **RouteMesh**—an intelligent RPC routing layer for Web3. RouteMesh exposes a single gateway for many chains: `https://lb.routeme.sh/rpc/{chain_id}/{api_key}`, so you can query blocks, transactions, logs, balances, and contract calls across Ethereum, L2s, and other EVM chains without managing per-chain RPC URLs. This server also supports automatic failover to `https://lb2.routeme.sh`.
+`@routemesh/mcp` is a local stdio MCP server for querying blockchain data through RouteMesh.
 
-**To get an API key**, sign up at [https://routeme.sh/auth/signup](https://routeme.sh/auth/signup).
+## At a glance
 
-## Use cases
+- **Package:** `@routemesh/mcp`
+- **Gateway:** `https://lb.routeme.sh/rpc/{chain_id}/{api_key}`
+- **Failover:** `https://lb2.routeme.sh`
+- **Scope:** read-only RPC tooling for developers and AI assistants
+- **API key:** [https://routeme.sh/auth/signup](https://routeme.sh/auth/signup)
 
-- **Cross-chain discovery** — List supported chains, filter by name or chain ID, then run RPC calls on any of them from one place.
-- **On-chain lookup from the assistant** — From a conversation, ask for a wallet’s balance, a transaction receipt, or contract read on a given chain (e.g. “What’s the USDC balance for 0x… on Base?”).
-- **Logs and traces** — Query event logs by block range and topics, or fetch best-effort transaction traces for debugging.
-- **Gas and fee data** — Get gas prices and EIP-1559 fee data for building or simulating transactions.
-- **Generic JSON-RPC** — Use `rpc_call` for any method RouteMesh supports without waiting for a dedicated tool.
+## Why use it
 
-## What It Supports
+- Query many EVM chains from one endpoint.
+- Fetch blocks, transactions, receipts, logs, balances, and fee data.
+- Run generic JSON-RPC without waiting for a dedicated wrapper.
+- Use in Cursor as an on-demand command (not an always-on daemon).
+
+## Tools
 
 - `rpc_list_chains` - discover and filter supported chains
 - `rpc_call` - generic JSON-RPC escape hatch
@@ -29,89 +34,85 @@
 ## Prerequisites
 
 - Node.js 20+
-- A RouteMesh API key ([sign up at routeme.sh/auth/signup](https://routeme.sh/auth/signup))
+- RouteMesh API key ([sign up](https://routeme.sh/auth/signup))
 
-## Setup
+## Quick start
+
+Install and build:
 
 ```bash
 npm install
 npm run build
 ```
 
-Copy `.env.example` to `.env` and set your API key:
+Set API key for local dev:
 
 ```bash
 cp .env.example .env
 ```
 
-## Local Run
-
-For local manual execution:
+Run local build:
 
 ```bash
 ROUTEMESH_API_KEY=your_key_here node dist/index.js
 ```
 
-Or for development:
+Run in dev mode:
 
 ```bash
 ROUTEMESH_API_KEY=your_key_here npm run dev
 ```
 
-## Run via npx
-
-After publishing, users can run the server directly with:
+Run published package:
 
 ```bash
 ROUTEMESH_API_KEY=your_key_here npx -y @routemesh/mcp
 ```
 
-## Cursor MCP Integration (Command-Based)
+## Cursor MCP config
 
-Use command-style launch in `~/.cursor/mcp.json` (same model as `mcp-clickhouse` style command entries).
+Add one of these to `~/.cursor/mcp.json`.
 
-Local build variant:
+Local build:
 
 ```json
 {
-    "mcpServers": {
-        "routemesh": {
-            "command": "node",
-            "args": ["/ABSOLUTE/PATH/TO/PROJECT/dist/index.js"],
-            "env": {
-                "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
-            }
-        }
+  "mcpServers": {
+    "routemesh": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/PROJECT/dist/index.js"],
+      "env": {
+        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+      }
     }
+  }
 }
 ```
 
-Published `npx` variant:
+Published package via `npx`:
 
 ```json
 {
-    "mcpServers": {
-        "routemesh": {
-            "command": "npx",
+  "mcpServers": {
+    "routemesh": {
+      "command": "npx",
       "args": ["-y", "@routemesh/mcp"],
-            "env": {
-                "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
-            }
-        }
+      "env": {
+        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+      }
     }
+  }
 }
 ```
 
-This server is not an always-on background daemon. Cursor starts it on demand via the command.
-
-## Development Commands
+## Development commands
 
 - `npm run typecheck` - static type checking
 - `npm run test` - run tests once
 - `npm run test:watch` - watch mode
 - `npm run build` - compile to `dist/`
 
-## Release workflow
+## Release
 
 ```bash
 npm run test
@@ -122,12 +123,11 @@ npm publish --access public
 
 ## Notes
 
-- Read-only tools parse and query RouteMesh chain + RPC data.
-- The client uses `ROUTEMESH_BASE_URL` first and falls back to `ROUTEMESH_BACKUP_BASE_URL` on retryable failures.
-- `rpc_list_chains` parses RouteMesh chain data from `https://routeme.sh/llms.txt`.
-- `rpc_call` is included so you can access any additional JSON-RPC method without waiting for tool-specific wrappers.
+- The server is read-only.
+- Requests use `ROUTEMESH_BASE_URL` first, then `ROUTEMESH_BACKUP_BASE_URL` on retryable failures.
+- `rpc_list_chains` parses chain data from `https://routeme.sh/llms.txt`.
 
 ## References
 
-- RouteMesh overview and chain list: [https://routeme.sh/llms.txt](https://routeme.sh/llms.txt)
+- RouteMesh chain list: [https://routeme.sh/llms.txt](https://routeme.sh/llms.txt)
 - RouteMesh docs: [https://routeme.sh/docs](https://routeme.sh/docs)
