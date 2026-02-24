@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "routemesh-mcp": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/routemesh-mcp/dist/index.js"],
+      "env": {
+        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+      }
+    }
+  }
+}
