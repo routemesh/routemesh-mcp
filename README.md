@@ -1,4 +1,4 @@
-# routemesh-mcp
+# RouteMesh MCP Server
 
 `routemesh-mcp` is a local stdio MCP server that lets AI assistants and other MCP clients talk to **RouteMesh**—an intelligent RPC routing layer for Web3. RouteMesh exposes a single gateway for many chains: `https://lb.routeme.sh/rpc/{chain_id}/{api_key}`, so you can query blocks, transactions, logs, balances, and contract calls across Ethereum, L2s, and other EVM chains without managing per-chain RPC URLs. This server also supports automatic failover to `https://lb2.routeme.sh`.
 
@@ -63,7 +63,7 @@ ROUTEMESH_API_KEY=your_key_here npm run dev
 After publishing, users can run the server directly with:
 
 ```bash
-ROUTEMESH_API_KEY=your_key_here npx -y @routemesh/routemesh-mcp
+ROUTEMESH_API_KEY=your_key_here npx -y @routemesh/mcp
 ```
 
 ## Cursor MCP Integration (Command-Based)
@@ -74,15 +74,15 @@ Local build variant:
 
 ```json
 {
-  "mcpServers": {
-    "routemesh-mcp": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/routemesh-mcp/dist/index.js"],
-      "env": {
-        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
-      }
+    "mcpServers": {
+        "routemesh-mcp": {
+            "command": "node",
+            "args": ["/ABSOLUTE/PATH/TO/routemesh-mcp/dist/index.js"],
+            "env": {
+                "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -90,15 +90,15 @@ Published `npx` variant:
 
 ```json
 {
-  "mcpServers": {
-    "routemesh-mcp": {
-      "command": "npx",
-      "args": ["-y", "@routemesh/routemesh-mcp"],
-      "env": {
-        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
-      }
+    "mcpServers": {
+        "routemesh-mcp": {
+            "command": "npx",
+      "args": ["-y", "@routemesh/mcp"],
+            "env": {
+                "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+            }
+        }
     }
-  }
 }
 ```
 
