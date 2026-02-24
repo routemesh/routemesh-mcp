@@ -63,7 +63,7 @@ ROUTEMESH_API_KEY=your_key_here npm run dev
 After publishing, users can run the server directly with:
 
 ```bash
-ROUTEMESH_API_KEY=your_key_here npx -y routemesh-mcp
+ROUTEMESH_API_KEY=your_key_here npx -y @routemesh/routemesh-mcp
 ```
 
 ## Cursor MCP Integration (Command-Based)
@@ -93,7 +93,7 @@ Published `npx` variant:
   "mcpServers": {
     "routemesh-mcp": {
       "command": "npx",
-      "args": ["-y", "routemesh-mcp"],
+      "args": ["-y", "@routemesh/routemesh-mcp"],
       "env": {
         "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
       }
@@ -117,7 +117,7 @@ This server is not an always-on background daemon. Cursor starts it on demand vi
 npm run test
 npm run build
 npm version patch
-npm publish
+npm publish --access public
 ```
 
 ## Notes

@@ -1,5 +1,5 @@
 {
-  "name": "routemesh-mcp",
+  "name": "@routemesh/routemesh-mcp",
   "version": "0.1.0",
   "description": "RouteMesh MCP server for cross-chain RPC data and transactions",
   "main": "dist/index.js",
@@ -27,6 +27,9 @@
   },
   "bin": {
     "routemesh-mcp": "dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",

@@ -9,7 +9,7 @@
     },
     "routemesh-mcp-npx": {
       "command": "npx",
-      "args": ["-y", "routemesh-mcp"],
+      "args": ["-y", "@routemesh/routemesh-mcp"],
       "env": {
         "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
       }
