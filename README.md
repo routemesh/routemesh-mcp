@@ -4,18 +4,20 @@
 
 ## At a glance
 
-- **Package:** `@routemesh/mcp`
-- **Gateway:** `https://lb.routeme.sh/rpc/{chain_id}/{api_key}`
-- **Failover:** `https://lb2.routeme.sh`
-- **Scope:** read-only RPC tooling for developers and AI assistants
-- **API key:** [https://routeme.sh/auth/signup](https://routeme.sh/auth/signup)
+- Query multiple EVM chains from one MCP server.
+- Pull useful on-chain data quickly (blocks, txs, logs, balances, fees).
+- Use generic JSON-RPC when you need methods beyond built-in tools.
+- Reduce RPC endpoint management overhead with RouteMesh routing + failover.
+- Plug into Cursor as an on-demand command, not a background daemon.
 
-## Why use it
+## Prompt examples
 
-- Query many EVM chains from one endpoint.
-- Fetch blocks, transactions, receipts, logs, balances, and fee data.
-- Run generic JSON-RPC without waiting for a dedicated wrapper.
-- Use in Cursor as an on-demand command (not an always-on daemon).
+- "List chains that match `base` and show me their chain IDs."
+- "Get the latest block on BSC and summarize timestamp + tx count."
+- "Fetch receipt for tx `0x...` on Ethereum and tell me if it succeeded."
+- "Get logs for this contract on Arbitrum between block X and Y."
+- "Estimate gas for calling this method on Base using these params."
+- "Run `eth_getCode` on chain 8453 for address `0x...`."
 
 ## Tools
 
