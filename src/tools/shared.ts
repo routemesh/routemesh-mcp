@@ -15,8 +15,15 @@ export const addressSchema = z
   .string()
   .regex(/^0x[0-9a-fA-F]{40}$/, "Must be a valid EVM address");
 
-export function formatResult(title: string, payload: unknown) {
-  return {
+export function formatResult(
+  title: string,
+  payload: unknown,
+  batchId?: string | null
+) {
+  const response: {
+    content: Array<{ type: "text"; text: string }>;
+    structuredContent: { data: unknown; batchId?: string | null };
+  } = {
     content: [
       {
         type: "text" as const,
@@ -25,6 +32,12 @@ export function formatResult(title: string, payload: unknown) {
     ],
     structuredContent: { data: payload as unknown },
   };
+
+  if (batchId !== undefined && batchId !== null) {
+    response.structuredContent.batchId = batchId;
+  }
+
+  return response;
 }
 
 export function formatError(error: unknown) {

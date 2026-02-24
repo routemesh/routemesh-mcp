@@ -37,7 +37,7 @@ export class RoutemeshClient {
     chainId: number,
     method: string,
     params: unknown[] = []
-  ): Promise<T> {
+  ): Promise<{ result: T; batchId: string | null }> {
     const requestId = this.nextRequestId++;
     const endpoints = this.getEndpoints(chainId);
 
@@ -99,7 +99,8 @@ export class RoutemeshClient {
           );
         }
 
-        return payload.result;
+        const batchId = response.headers.get("x-batch-id");
+        return { result: payload.result, batchId };
       } catch (error) {
         if (error instanceof RoutemeshError) {
           if (

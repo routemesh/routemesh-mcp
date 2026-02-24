@@ -88,8 +88,8 @@ export function registerReadTools(
     },
     async ({ chainId, method, params }, _extra) => {
       try {
-        const result = await client.rpcCall(chainId, method, params);
-        return formatResult("Raw JSON-RPC result", { chainId, method, result });
+        const { result, batchId } = await client.rpcCall(chainId, method, params);
+        return formatResult("Raw JSON-RPC result", { chainId, method, result }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -113,11 +113,11 @@ export function registerReadTools(
       try {
         const method = blockHash ? "eth_getBlockByHash" : "eth_getBlockByNumber";
         const param = blockHash ?? normalizeBlockTag(blockTag);
-        const block = await client.rpcCall(chainId, method, [
+        const { result: block, batchId } = await client.rpcCall(chainId, method, [
           param,
           includeTransactions,
         ]);
-        return formatResult("Block result", { chainId, block });
+        return formatResult("Block result", { chainId, block }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -136,10 +136,10 @@ export function registerReadTools(
     },
     async ({ chainId, txHash }, _extra) => {
       try {
-        const transaction = await client.rpcCall(chainId, "eth_getTransactionByHash", [
+        const { result: transaction, batchId } = await client.rpcCall(chainId, "eth_getTransactionByHash", [
           txHash,
         ]);
-        return formatResult("Transaction result", { chainId, transaction });
+        return formatResult("Transaction result", { chainId, transaction }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -158,10 +158,10 @@ export function registerReadTools(
     },
     async ({ chainId, txHash }, _extra) => {
       try {
-        const receipt = await client.rpcCall(chainId, "eth_getTransactionReceipt", [
+        const { result: receipt, batchId } = await client.rpcCall(chainId, "eth_getTransactionReceipt", [
           txHash,
         ]);
-        return formatResult("Transaction receipt result", { chainId, receipt });
+        return formatResult("Transaction receipt result", { chainId, receipt }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -190,8 +190,8 @@ export function registerReadTools(
           ...(topics ? { topics } : {}),
         };
 
-        const logs = await client.rpcCall(chainId, "eth_getLogs", [filter]);
-        return formatResult("Logs result", { chainId, filter, logs });
+        const { result: logs, batchId } = await client.rpcCall(chainId, "eth_getLogs", [filter]);
+        return formatResult("Logs result", { chainId, filter, logs }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -211,11 +211,11 @@ export function registerReadTools(
     },
     async ({ chainId, address, blockTag }, _extra) => {
       try {
-        const balance = await client.rpcCall(chainId, "eth_getBalance", [
+        const { result: balance, batchId } = await client.rpcCall(chainId, "eth_getBalance", [
           address,
           normalizeBlockTag(blockTag),
         ]);
-        return formatResult("Balance result", { chainId, address, balance });
+        return formatResult("Balance result", { chainId, address, balance }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -252,11 +252,11 @@ export function registerReadTools(
           ...(gasPrice ? { gasPrice } : {}),
           ...(value ? { value } : {}),
         };
-        const result = await client.rpcCall(chainId, "eth_call", [
+        const { result, batchId } = await client.rpcCall(chainId, "eth_call", [
           tx,
           normalizeBlockTag(blockTag),
         ]);
-        return formatResult("Contract call result", { chainId, tx, result });
+        return formatResult("Contract call result", { chainId, tx, result }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -275,14 +275,14 @@ export function registerReadTools(
     },
     async ({ chainId, transaction }, _extra) => {
       try {
-        const gasEstimate = await client.rpcCall(chainId, "eth_estimateGas", [
+        const { result: gasEstimate, batchId } = await client.rpcCall(chainId, "eth_estimateGas", [
           transaction,
         ]);
         return formatResult("Gas estimate result", {
           chainId,
           transaction,
           gasEstimate,
-        });
+        }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -301,7 +301,7 @@ export function registerReadTools(
     },
     async ({ chainId }, _extra) => {
       try {
-        const [gasPrice, maxPriorityFeePerGas, feeHistory] = await Promise.all([
+        const [gasPriceResult, maxPriorityFeePerGasResult, feeHistoryResult] = await Promise.all([
           client.rpcCall(chainId, "eth_gasPrice", []),
           client
             .rpcCall(chainId, "eth_maxPriorityFeePerGas", [])
@@ -309,12 +309,18 @@ export function registerReadTools(
           client.rpcCall(chainId, "eth_feeHistory", ["0x1", "latest", [50]]),
         ]);
 
+        const gasPrice = gasPriceResult.result;
+        const maxPriorityFeePerGas = maxPriorityFeePerGasResult?.result ?? null;
+        const feeHistory = feeHistoryResult.result;
+        // Use the batchId from the last successful call (feeHistory) or from gasPrice if feeHistory failed
+        const batchId = feeHistoryResult.batchId ?? gasPriceResult.batchId;
+
         return formatResult("Fee data result", {
           chainId,
           gasPrice,
           maxPriorityFeePerGas,
           feeHistory,
-        });
+        }, batchId);
       } catch (error) {
         return formatError(error);
       }
@@ -346,14 +352,17 @@ export function registerReadTools(
         let traceResult: unknown = null;
         let usedMethod = methods[0] ?? traceMethod;
         let lastError: unknown = null;
+        let batchId: string | null = null;
 
         for (const method of methods) {
           try {
             usedMethod = method;
-            traceResult =
+            const response =
               method === "debug_traceTransaction"
                 ? await client.rpcCall(chainId, method, [txHash, {}])
                 : await client.rpcCall(chainId, method, [txHash]);
+            traceResult = response.result;
+            batchId = response.batchId;
             lastError = null;
             break;
           } catch (error) {
@@ -370,7 +379,7 @@ export function registerReadTools(
           txHash,
           usedMethod,
           traceResult,
-        });
+        }, batchId);
       } catch (error) {
         return formatError(error);
       }
