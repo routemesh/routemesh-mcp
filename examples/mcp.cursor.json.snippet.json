@@ -1,15 +1,20 @@
 {
   "mcpServers": {
-    "routemesh-mcp-local": {
+    "routemesh-local": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/routemesh-mcp/dist/index.js"],
+      "args": [
+        "/ABSOLUTE/PATH/TO/PROJECT/dist/index.js"
+      ],
       "env": {
         "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
       }
     },
-    "routemesh-mcp-npx": {
+    "routemesh": {
       "command": "npx",
-      "args": ["-y", "@routemesh/mcp"],
+      "args": [
+        "-y",
+        "@routemesh/mcp"
+      ],
       "env": {
         "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
       }

@@ -26,7 +26,7 @@
     "node": ">=20"
   },
   "bin": {
-    "routemesh-mcp": "dist/index.js"
+    "routemesh": "dist/index.js"
   },
   "publishConfig": {
     "access": "public"

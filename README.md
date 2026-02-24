@@ -1,6 +1,6 @@
 # RouteMesh MCP Server
 
-`routemesh-mcp` is a local stdio MCP server that lets AI assistants and other MCP clients talk to **RouteMesh**—an intelligent RPC routing layer for Web3. RouteMesh exposes a single gateway for many chains: `https://lb.routeme.sh/rpc/{chain_id}/{api_key}`, so you can query blocks, transactions, logs, balances, and contract calls across Ethereum, L2s, and other EVM chains without managing per-chain RPC URLs. This server also supports automatic failover to `https://lb2.routeme.sh`.
+`@routemesh/mcp` is a local stdio MCP server that lets AI assistants and other MCP clients talk to **RouteMesh**—an intelligent RPC routing layer for Web3. RouteMesh exposes a single gateway for many chains: `https://lb.routeme.sh/rpc/{chain_id}/{api_key}`, so you can query blocks, transactions, logs, balances, and contract calls across Ethereum, L2s, and other EVM chains without managing per-chain RPC URLs. This server also supports automatic failover to `https://lb2.routeme.sh`.
 
 **To get an API key**, sign up at [https://routeme.sh/auth/signup](https://routeme.sh/auth/signup).
 
@@ -75,9 +75,9 @@ Local build variant:
 ```json
 {
     "mcpServers": {
-        "routemesh-mcp": {
+        "routemesh": {
             "command": "node",
-            "args": ["/ABSOLUTE/PATH/TO/routemesh-mcp/dist/index.js"],
+            "args": ["/ABSOLUTE/PATH/TO/PROJECT/dist/index.js"],
             "env": {
                 "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
             }
@@ -91,7 +91,7 @@ Published `npx` variant:
 ```json
 {
     "mcpServers": {
-        "routemesh-mcp": {
+        "routemesh": {
             "command": "npx",
       "args": ["-y", "@routemesh/mcp"],
             "env": {

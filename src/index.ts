@@ -8,7 +8,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
 
   const server = new McpServer({
-    name: "routemesh-mcp",
+    name: "@routemesh/mcp",
     version: "0.1.0",
   });
 
@@ -20,7 +20,7 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   process.stderr.write(
-    `Failed to start routemesh-mcp: ${
+    `Failed to start @routemesh/mcp: ${
       error instanceof Error ? error.message : String(error)
     }\n`
   );
