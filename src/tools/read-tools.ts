@@ -100,12 +100,11 @@ export function registerReadTools(
                     method,
                     params,
                 );
-                return formatResult("Raw JSON-RPC result", {
-                    chainId,
-                    method,
-                    result,
+                return formatResult(
+                    "Raw JSON-RPC result",
+                    { chainId, method, result },
                     batchId,
-                });
+                );
             } catch (error) {
                 return formatError(error);
             }
@@ -139,11 +138,7 @@ export function registerReadTools(
                     method,
                     [param, includeTransactions],
                 );
-                return formatResult("Block result", {
-                    chainId,
-                    block,
-                    batchId,
-                });
+                return formatResult("Block result", { chainId, block }, batchId);
             } catch (error) {
                 return formatError(error);
             }
@@ -167,11 +162,11 @@ export function registerReadTools(
                     "eth_getTransactionByHash",
                     [txHash],
                 );
-                return formatResult("Transaction result", {
-                    chainId,
-                    transaction,
+                return formatResult(
+                    "Transaction result",
+                    { chainId, transaction },
                     batchId,
-                });
+                );
             } catch (error) {
                 return formatError(error);
             }
@@ -195,11 +190,11 @@ export function registerReadTools(
                     "eth_getTransactionReceipt",
                     [txHash],
                 );
-                return formatResult("Transaction receipt result", {
-                    chainId,
-                    receipt,
+                return formatResult(
+                    "Transaction receipt result",
+                    { chainId, receipt },
                     batchId,
-                });
+                );
             } catch (error) {
                 return formatError(error);
             }
@@ -236,12 +231,11 @@ export function registerReadTools(
                     "eth_getLogs",
                     [filter],
                 );
-                return formatResult("Logs result", {
-                    chainId,
-                    filter,
-                    logs,
+                return formatResult(
+                    "Logs result",
+                    { chainId, filter, logs },
                     batchId,
-                });
+                );
             } catch (error) {
                 return formatError(error);
             }
@@ -266,12 +260,11 @@ export function registerReadTools(
                     "eth_getBalance",
                     [address, normalizeBlockTag(blockTag)],
                 );
-                return formatResult("Balance result", {
-                    chainId,
-                    address,
-                    balance,
+                return formatResult(
+                    "Balance result",
+                    { chainId, address, balance },
                     batchId,
-                });
+                );
             } catch (error) {
                 return formatError(error);
             }
@@ -313,12 +306,11 @@ export function registerReadTools(
                     "eth_call",
                     [tx, normalizeBlockTag(blockTag)],
                 );
-                return formatResult("Contract call result", {
-                    chainId,
-                    tx,
-                    result,
+                return formatResult(
+                    "Contract call result",
+                    { chainId, tx, result },
                     batchId,
-                });
+                );
             } catch (error) {
                 return formatError(error);
             }
@@ -342,12 +334,15 @@ export function registerReadTools(
                     "eth_estimateGas",
                     [transaction],
                 );
-                return formatResult("Gas estimate result", {
-                    chainId,
-                    transaction,
-                    gasEstimate,
+                return formatResult(
+                    "Gas estimate result",
+                    {
+                        chainId,
+                        transaction,
+                        gasEstimate,
+                    },
                     batchId,
-                });
+                );
             } catch (error) {
                 return formatError(error);
             }
@@ -443,6 +438,7 @@ export function registerReadTools(
                 let traceResult: unknown = null;
                 let usedMethod = methods[0] ?? traceMethod;
                 let lastError: unknown = null;
+                let batchId: string | null = null;
 
                 for (const method of methods) {
                     try {
@@ -457,6 +453,7 @@ export function registerReadTools(
                                       txHash,
                                   ]);
                         traceResult = res.result;
+                        batchId = res.batchId;
                         lastError = null;
                         break;
                     } catch (error) {
@@ -468,12 +465,16 @@ export function registerReadTools(
                     throw lastError;
                 }
 
-                return formatResult("Trace transaction result", {
-                    chainId,
-                    txHash,
-                    usedMethod,
-                    traceResult,
-                });
+                return formatResult(
+                    "Trace transaction result",
+                    {
+                        chainId,
+                        txHash,
+                        usedMethod,
+                        traceResult,
+                    },
+                    batchId,
+                );
             } catch (error) {
                 return formatError(error);
             }

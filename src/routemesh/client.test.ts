@@ -14,7 +14,10 @@ describe("RoutemeshClient", () => {
           id: 1,
           result: "0x1",
         }),
-        { status: 200 }
+        { 
+          status: 200,
+          headers: { "x-batch-id": "test-batch-id-1" }
+        }
       );
     }) as typeof fetch;
 
@@ -26,8 +29,9 @@ describe("RoutemeshClient", () => {
         retryAttempts: 0,
       });
 
-      const { result } = await client.rpcCall<string>(1, "eth_blockNumber", []);
+      const { result, batchId } = await client.rpcCall<string>(1, "eth_blockNumber", []);
       expect(result).toBe("0x1");
+      expect(batchId).toBe("test-batch-id-1");
       expect(calls[0]).toBe("https://lb.routeme.sh/rpc/1/test-key");
     } finally {
       globalThis.fetch = originalFetch;
@@ -50,7 +54,10 @@ describe("RoutemeshClient", () => {
           id: 1,
           result: "0x2",
         }),
-        { status: 200 }
+        { 
+          status: 200,
+          headers: { "x-batch-id": "test-batch-id-2" }
+        }
       );
     }) as typeof fetch;
 
@@ -62,8 +69,9 @@ describe("RoutemeshClient", () => {
         retryAttempts: 1,
       });
 
-      const { result } = await client.rpcCall<string>(1, "eth_blockNumber", []);
+      const { result, batchId } = await client.rpcCall<string>(1, "eth_blockNumber", []);
       expect(result).toBe("0x2");
+      expect(batchId).toBe("test-batch-id-2");
       expect(calls[0]).toBe("https://lb.routeme.sh/rpc/1/test-key");
       expect(calls[1]).toBe("https://lb2.routeme.sh/rpc/1/test-key");
     } finally {

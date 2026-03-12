@@ -37,7 +37,7 @@ export class RoutemeshClient {
     chainId: number,
     method: string,
     params: unknown[] = []
-  ): Promise<{ result: T; batchId?: string | undefined }> {
+  ): Promise<{ result: T; batchId: string | null }> {
     const requestId = this.nextRequestId++;
     const endpoints = this.getEndpoints(chainId);
 
@@ -63,7 +63,7 @@ export class RoutemeshClient {
           signal: AbortSignal.timeout(this.config.timeoutMs),
         });
 
-        const batchId = response.headers.get("x-batch-id") ?? undefined;
+        const batchId = response.headers.get("x-batch-id");
 
         if (!response.ok) {
           const retryable = response.status === 429 || response.status >= 500;
@@ -101,9 +101,7 @@ export class RoutemeshClient {
           );
         }
 
-        return batchId !== undefined
-          ? { result: payload.result, batchId }
-          : { result: payload.result };
+        return { result: payload.result, batchId: batchId ?? null };
       } catch (error) {
         if (error instanceof RoutemeshError) {
           if (
