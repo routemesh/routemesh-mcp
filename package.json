@@ -1,6 +1,6 @@
 {
   "name": "@routemesh/mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "RouteMesh MCP server for cross-chain RPC data and transactions",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
