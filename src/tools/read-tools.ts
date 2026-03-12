@@ -375,23 +375,24 @@ export function registerReadTools(
                     ]),
                 ]);
 
-                const gasPriceResult =
-                    gasPriceSettled.status === "fulfilled"
-                        ? gasPriceSettled.value
-                        : null;
+                if (gasPriceSettled.status === "rejected") {
+                    throw gasPriceSettled.reason;
+                }
+                if (feeHistorySettled.status === "rejected") {
+                    throw feeHistorySettled.reason;
+                }
+
+                const gasPriceResult = gasPriceSettled.value;
                 const maxPriorityFeePerGasResult =
                     maxPriorityFeePerGasSettled.status === "fulfilled"
                         ? maxPriorityFeePerGasSettled.value
                         : null;
-                const feeHistoryResult =
-                    feeHistorySettled.status === "fulfilled"
-                        ? feeHistorySettled.value
-                        : null;
+                const feeHistoryResult = feeHistorySettled.value;
 
-                const gasPrice = gasPriceResult?.result ?? null;
+                const gasPrice = gasPriceResult.result;
                 const maxPriorityFeePerGas =
                     maxPriorityFeePerGasResult?.result ?? null;
-                const feeHistory = feeHistoryResult?.result ?? null;
+                const feeHistory = feeHistoryResult.result;
 
                 const batchIds = {
                     gasPrice: gasPriceResult?.batchId,
