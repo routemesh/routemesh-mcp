@@ -34,7 +34,11 @@ export class RoutemeshError extends Error {
 export function formatToolError(error: unknown): string {
   if (error instanceof RoutemeshError) {
     const statusPart = error.status ? ` (status ${error.status})` : "";
-    return `${error.message}${statusPart}`;
+    const details =
+      error.details && typeof error.details === "object" && "batchId" in error.details && error.details.batchId
+        ? ` (batchId: ${String(error.details.batchId)})`
+        : "";
+    return `${error.message}${statusPart}${details}`;
   }
 
   if (error instanceof Error) {

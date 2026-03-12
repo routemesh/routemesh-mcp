@@ -37,7 +37,7 @@ export class RoutemeshClient {
     chainId: number,
     method: string,
     params: unknown[] = []
-  ): Promise<T> {
+  ): Promise<{ result: T; batchId: string | null }> {
     const requestId = this.nextRequestId++;
     const endpoints = this.getEndpoints(chainId);
 
@@ -63,6 +63,8 @@ export class RoutemeshClient {
           signal: AbortSignal.timeout(this.config.timeoutMs),
         });
 
+        const batchId = response.headers.get("x-batch-id");
+
         if (!response.ok) {
           const retryable = response.status === 429 || response.status >= 500;
           if (retryable && attempt < this.config.retryAttempts) {
@@ -75,7 +77,7 @@ export class RoutemeshClient {
             {
               type: "http_error",
               status: response.status,
-              details: { endpoint },
+              details: { endpoint, batchId },
             }
           );
         }
@@ -85,7 +87,7 @@ export class RoutemeshClient {
         if (!payload || payload.jsonrpc !== "2.0") {
           throw new RoutemeshError("Invalid JSON-RPC response from RouteMesh", {
             type: "invalid_response",
-            details: payload,
+            details: { payload, batchId },
           });
         }
 
@@ -94,12 +96,12 @@ export class RoutemeshClient {
             `RouteMesh RPC error for ${method}: ${payload.error.message}`,
             {
               type: "rpc_error",
-              details: { ...payload.error, endpoint },
+              details: { ...payload.error, endpoint, batchId },
             }
           );
         }
 
-        return payload.result;
+        return { result: payload.result, batchId: batchId ?? null };
       } catch (error) {
         if (error instanceof RoutemeshError) {
           if (
