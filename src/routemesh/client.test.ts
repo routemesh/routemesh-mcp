@@ -26,7 +26,7 @@ describe("RoutemeshClient", () => {
         retryAttempts: 0,
       });
 
-      const result = await client.rpcCall<string>(1, "eth_blockNumber", []);
+      const { result } = await client.rpcCall<string>(1, "eth_blockNumber", []);
       expect(result).toBe("0x1");
       expect(calls[0]).toBe("https://lb.routeme.sh/rpc/1/test-key");
     } finally {
@@ -62,7 +62,7 @@ describe("RoutemeshClient", () => {
         retryAttempts: 1,
       });
 
-      const result = await client.rpcCall<string>(1, "eth_blockNumber", []);
+      const { result } = await client.rpcCall<string>(1, "eth_blockNumber", []);
       expect(result).toBe("0x2");
       expect(calls[0]).toBe("https://lb.routeme.sh/rpc/1/test-key");
       expect(calls[1]).toBe("https://lb2.routeme.sh/rpc/1/test-key");
