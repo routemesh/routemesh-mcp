@@ -6,7 +6,8 @@
         "/ABSOLUTE/PATH/TO/PROJECT/dist/index.js"
       ],
       "env": {
-        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key",
+        "ROUTEMESH_MGMT_TOKEN": "replace-with-your-customer-mgmt-token"
       }
     },
     "routemesh": {
@@ -16,7 +17,8 @@
         "@routemesh/mcp"
       ],
       "env": {
-        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key",
+        "ROUTEMESH_MGMT_TOKEN": "replace-with-your-customer-mgmt-token"
       }
     }
   }
