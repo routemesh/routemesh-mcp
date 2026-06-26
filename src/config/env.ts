@@ -2,7 +2,7 @@ import * as z from "zod/v4";
 
 const envSchema = z.object({
   ROUTEMESH_API_KEY: z.string().min(1, "ROUTEMESH_API_KEY is required"),
-  ROUTEMESH_MGMT_TOKEN: z.string().min(1).optional(),
+  ROUTEMESH_MGMT_TOKEN: z.string().trim().min(1).optional(),
   ROUTEMESH_API_SERVER_URL: z.string().url().default("https://api.routeme.sh"),
   ROUTEMESH_BASE_URL: z.string().url().default("https://lb.routeme.sh"),
   ROUTEMESH_BACKUP_BASE_URL: z.string().url().default("https://lb2.routeme.sh"),

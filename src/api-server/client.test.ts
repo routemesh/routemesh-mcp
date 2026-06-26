@@ -66,6 +66,32 @@ describe("ApiServerClient", () => {
     }
   });
 
+  it("preserves raw error body for non-JSON error responses", async () => {
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = (async () =>
+      new Response("<html>Internal Server Error</html>", {
+        status: 500,
+        headers: { "content-type": "text/html" },
+      })) as typeof fetch;
+
+    try {
+      const client = new ApiServerClient({
+        baseUrl: "https://api.routeme.sh",
+        mgmtToken: "mgmt-token-123",
+        timeoutMs: 1000,
+      });
+
+      await expect(client.getUsage()).rejects.toMatchObject({
+        name: "ApiServerError",
+        type: "http_error",
+        status: 500,
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("throws ApiServerError on non-2xx responses", async () => {
     const originalFetch = globalThis.fetch;
 

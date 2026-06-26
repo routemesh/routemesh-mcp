@@ -31,4 +31,22 @@ describe("loadConfig", () => {
   it("throws when ROUTEMESH_API_KEY is missing", () => {
     expect(() => loadConfig({})).toThrow(/ROUTEMESH_API_KEY/);
   });
+
+  it("rejects whitespace-only ROUTEMESH_MGMT_TOKEN", () => {
+    expect(() =>
+      loadConfig({
+        ROUTEMESH_API_KEY: "test-key",
+        ROUTEMESH_MGMT_TOKEN: "   ",
+      })
+    ).toThrow(/ROUTEMESH_MGMT_TOKEN/);
+  });
+
+  it("trims whitespace from ROUTEMESH_MGMT_TOKEN", () => {
+    const config = loadConfig({
+      ROUTEMESH_API_KEY: "test-key",
+      ROUTEMESH_MGMT_TOKEN: "  mgmt-token-123  ",
+    });
+
+    expect(config.mgmtToken).toBe("mgmt-token-123");
+  });
 });

@@ -61,11 +61,14 @@ export class ApiServerClient {
       });
 
       if (!response.ok) {
-        let details: unknown;
-        try {
-          details = await response.json();
-        } catch {
-          details = await response.text();
+        const rawDetails = await response.text();
+        let details: unknown = rawDetails;
+        if (rawDetails) {
+          try {
+            details = JSON.parse(rawDetails);
+          } catch {
+            // Keep the raw body for non-JSON error responses.
+          }
         }
 
         throw new ApiServerError("API server HTTP error while fetching usage", {
