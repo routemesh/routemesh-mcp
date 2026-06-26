@@ -2,6 +2,8 @@ import * as z from "zod/v4";
 
 const envSchema = z.object({
   ROUTEMESH_API_KEY: z.string().min(1, "ROUTEMESH_API_KEY is required"),
+  ROUTEMESH_MGMT_TOKEN: z.string().trim().min(1).optional(),
+  ROUTEMESH_API_SERVER_URL: z.string().url().default("https://api.routeme.sh"),
   ROUTEMESH_BASE_URL: z.string().url().default("https://lb.routeme.sh"),
   ROUTEMESH_BACKUP_BASE_URL: z.string().url().default("https://lb2.routeme.sh"),
   ROUTEMESH_TIMEOUT_MS: z
@@ -19,6 +21,8 @@ const envSchema = z.object({
 
 export type AppConfig = {
   apiKey: string;
+  mgmtToken: string | null;
+  apiServerUrl: string;
   baseUrl: string;
   backupBaseUrl: string;
   timeoutMs: number;
@@ -38,6 +42,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const data = parsed.data;
   return {
     apiKey: data.ROUTEMESH_API_KEY,
+    mgmtToken: data.ROUTEMESH_MGMT_TOKEN ?? null,
+    apiServerUrl: data.ROUTEMESH_API_SERVER_URL,
     baseUrl: data.ROUTEMESH_BASE_URL,
     backupBaseUrl: data.ROUTEMESH_BACKUP_BASE_URL,
     timeoutMs: data.ROUTEMESH_TIMEOUT_MS,
