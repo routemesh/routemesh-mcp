@@ -17,7 +17,7 @@ function loadEnv() {
       if (eqIdx === -1) continue;
       const key = trimmed.slice(0, eqIdx).trim();
       const value = trimmed.slice(eqIdx + 1).trim();
-      if (!process.env[key]) {
+      if (process.env[key] === undefined) {
         process.env[key] = value;
       }
     }
@@ -206,11 +206,11 @@ async function run() {
       if (listResult) {
         const listText = parseContent(listResult);
         const listData = parseJsonText(listText);
-        const listItems = Array.isArray((listData as Record<string, unknown>)?.items)
-          ? ((listData as Record<string, unknown>).items as unknown[])
-          : [];
 
-        check("list_api_keys returns array items", () => Array.isArray(listItems));
+        check("list_api_keys returns array items", () => {
+          const data = listData as Record<string, unknown> | null;
+          return data !== null && typeof data === "object" && Array.isArray(data.items);
+        });
       }
 
       // Test create_api_key (opt-in: mutates live account state)
