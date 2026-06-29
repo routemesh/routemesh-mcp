@@ -238,6 +238,19 @@ async function run() {
       } else {
         check("update_api_key — skipped (no api_key from create)", () => false);
       }
+
+      // Cleanup: ensure test key is always deactivated
+      if (apiKeyValue) {
+        try {
+          await client.callTool({
+            name: "update_api_key",
+            arguments: { apiKey: apiKeyValue, active: false },
+          });
+          console.log("  (cleanup) Deactivated test key");
+        } catch {
+          // best-effort cleanup
+        }
+      }
     }
   } finally {
     await transport.close();

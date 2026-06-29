@@ -100,7 +100,7 @@ export function registerCustomerTools(
         const usage = await client.getUsage({
           ...(from ? { from } : {}),
           ...(to ? { to } : {}),
-          ...(include ? { include } : {}),
+          ...(include && include.length > 0 ? { include } : {}),
           ...(groupBy ? { groupBy } : {}),
           ...(chainId ? { chainId } : {}),
           ...(apiKeyId !== undefined ? { apiKeyId } : {}),

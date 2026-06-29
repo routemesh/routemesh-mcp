@@ -158,6 +158,16 @@ async function run() {
     } catch {
       // check will report
     }
+
+    // Cleanup: ensure test key is always deactivated
+    if (createdKey && (!updatedKey || updatedKey.active !== false)) {
+      try {
+        await client.updateApiKey(createdKey.api_key, { active: false });
+        console.log("  (cleanup) Deactivated test key");
+      } catch {
+        // best-effort cleanup
+      }
+    }
   }
 
   // ── Summary ──

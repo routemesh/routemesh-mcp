@@ -279,7 +279,7 @@ describe("ApiServerClient", () => {
         timeoutMs: 1000,
       });
 
-      const result = await client.updateApiKey("rm_live_abc", {
+      const result = await client.updateApiKey("rm_live_abc/def+ghi", {
         name: "updated",
         active: false,
       });
@@ -288,7 +288,7 @@ describe("ApiServerClient", () => {
       expect(result.active).toBe(false);
       expect(calls).toHaveLength(1);
       expect(calls[0]?.url).toBe(
-        "https://api.routeme.sh/api-keys/rm_live_abc"
+        "https://api.routeme.sh/api-keys/rm_live_abc%2Fdef%2Bghi"
       );
       expect(calls[0]?.init?.method).toBe("PUT");
       expect(calls[0]?.init?.body).toBe(
@@ -371,11 +371,14 @@ describe("ApiServerClient", () => {
         timeoutMs: 1000,
       });
 
-      await expect(client.listApiKeys()).rejects.toMatchObject({
-        name: "ApiServerError",
-        type: "http_error",
-        status: 401,
-      });
+      try {
+        await client.listApiKeys();
+        throw new Error("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiServerError);
+        expect((error as ApiServerError).type).toBe("http_error");
+        expect((error as ApiServerError).status).toBe(401);
+      }
     } finally {
       globalThis.fetch = originalFetch;
     }

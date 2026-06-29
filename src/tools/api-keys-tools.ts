@@ -73,7 +73,7 @@ export function registerApiKeysTools(
         const created = await client.createApiKey({
           allowed_domains,
           routing_strategy,
-          ...(name ? { name } : {}),
+          ...(name !== undefined ? { name } : {}),
         });
         return formatResult("Created API key", created);
       } catch (error) {
