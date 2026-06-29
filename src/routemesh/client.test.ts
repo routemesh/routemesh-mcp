@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { RoutemeshError } from "./errors.js";
 import { RoutemeshClient } from "./client.js";
 
 describe("RoutemeshClient", () => {
@@ -74,6 +75,63 @@ describe("RoutemeshClient", () => {
       expect(batchId).toBe("test-batch-id-2");
       expect(calls[0]).toBe("https://lb.routeme.sh/rpc/1/test-key");
       expect(calls[1]).toBe("https://lb2.routeme.sh/rpc/1/test-key");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("redacts API key in network error messages", async () => {
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = (async () => {
+      throw new Error("simulated DNS failure");
+    }) as typeof fetch;
+
+    try {
+      const client = new RoutemeshClient({
+        apiKey: "rm_live_abc1234xyz",
+        baseUrls: ["https://lb.routeme.sh"],
+        timeoutMs: 1000,
+        retryAttempts: 0,
+      });
+
+      await expect(
+        client.rpcCall(1, "eth_blockNumber", [])
+      ).rejects.toThrow("rm_***xyz");
+
+      await expect(
+        client.rpcCall(1, "eth_blockNumber", [])
+      ).rejects.toSatisfy((error: RoutemeshError) => {
+        return !error.message.includes("rm_live_abc1234xyz");
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("fully masks short API keys", async () => {
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = (async () => {
+      throw new Error("simulated failure");
+    }) as typeof fetch;
+
+    try {
+      const client = new RoutemeshClient({
+        apiKey: "short",
+        baseUrls: ["https://lb.routeme.sh"],
+        timeoutMs: 1000,
+        retryAttempts: 0,
+      });
+
+      await expect(
+        client.rpcCall(1, "eth_blockNumber", [])
+      ).rejects.toSatisfy((error: RoutemeshError) => {
+        return (
+          error.message.includes("***") &&
+          !error.message.includes("short")
+        );
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }
