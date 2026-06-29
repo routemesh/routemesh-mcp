@@ -18,6 +18,8 @@
 - "Get logs for this contract on Arbitrum between block X and Y."
 - "Estimate gas for calling this method on Base using these params."
 - "Run `eth_getCode` on chain 8453 for address `0x...`."
+- "Show my RouteMesh usage for the last 7 days broken down by chain."
+- "What is my current RouteMesh balance and request count this month?"
 
 ## Tools
 
@@ -33,10 +35,41 @@
 - `rpc_get_fee_data` - gas price + EIP-1559 hints
 - `rpc_trace_transaction` - trace/debug transaction best effort
 
+- `rpc_trace_transaction` - trace/debug transaction best effort
+- `get_usage` - customer usage summary and balance from the API server (requires management token)
+
+## Usage reporting
+
+When `ROUTEMESH_MGMT_TOKEN` is set, the server exposes `get_usage`, which calls the API server `GET /usage` endpoint with the customer-scoped management token in the `x-api-key` header.
+
+Create a management token in the RouteMesh dashboard with a route allowlist that includes `GET /usage`.
+
+### `get_usage` query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `from` | RFC3339 timestamp | Window start (default: now minus 30 days) |
+| `to` | RFC3339 timestamp | Window end (default: now UTC) |
+| `include` | string array | Sections to return: `summary`, `balance`, `by_chain`, `by_api_key`, `by_api_key_chain`, `top_methods`, `time_series`, `by_scenario` (default: `summary`, `balance`) |
+| `groupBy` | string | Flat grouped rows (overrides `include`): `chain`, `api_key`, `api_key,chain`, `method`, `day` |
+| `chainId` | string | Filter to one chain |
+| `apiKeyId` | positive int | Filter to one customer API key |
+| `granularity` | `day` or `hour` | Time series bucketing (default: `day`) |
+| `limit` | int (1–100) | Max rows for `top_methods` and `group_by` (default: 20) |
+
+Examples:
+
+- Default (last 30 days, summary + balance): call `get_usage` with no parameters
+- Custom window with chain breakdown: `from=2026-06-01T00:00:00Z`, `to=2026-06-18T00:00:00Z`, `include=["summary","by_chain"]`
+- Hourly time series for one API key: `include=["time_series"]`, `granularity="hour"`, `apiKeyId=42`
+- Top methods on a chain: `include=["top_methods"]`, `chainId="ethereum"`, `limit=10`
+- Flat grouped rows: `groupBy="api_key,chain"`, `limit=50`
+
 ## Prerequisites
 
 - Node.js 20+
 - RouteMesh API key ([sign up](https://routeme.sh/auth/signup))
+- Customer management token with `GET /usage` in the route allowlist (optional, for `get_usage`)
 
 ## Quick start
 
@@ -84,7 +117,8 @@ Local build:
       "command": "node",
       "args": ["/ABSOLUTE/PATH/TO/PROJECT/dist/index.js"],
       "env": {
-        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key",
+        "ROUTEMESH_MGMT_TOKEN": "replace-with-your-customer-mgmt-token"
       }
     }
   }
@@ -100,7 +134,8 @@ Published package via `npx`:
       "command": "npx",
       "args": ["-y", "@routemesh/mcp"],
       "env": {
-        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key"
+        "ROUTEMESH_API_KEY": "replace-with-your-routemesh-key",
+        "ROUTEMESH_MGMT_TOKEN": "replace-with-your-customer-mgmt-token"
       }
     }
   }
@@ -125,7 +160,8 @@ npm publish --access public
 
 ## Notes
 
-- The server is read-only.
+- The server is read-only for on-chain RPC tools.
+- `get_usage` reads billing/usage data from the API server; it does not use Atlas.
 - Requests use `ROUTEMESH_BASE_URL` first, then `ROUTEMESH_BACKUP_BASE_URL` on retryable failures.
 - `rpc_list_chains` parses chain data from `https://routeme.sh/llms.txt`.
 

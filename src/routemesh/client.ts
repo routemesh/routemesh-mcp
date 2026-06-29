@@ -77,7 +77,7 @@ export class RoutemeshClient {
             {
               type: "http_error",
               status: response.status,
-              details: { endpoint, batchId },
+              details: { endpoint: this.redactEndpoint(endpoint), batchId },
             }
           );
         }
@@ -96,7 +96,7 @@ export class RoutemeshClient {
             `RouteMesh RPC error for ${method}: ${payload.error.message}`,
             {
               type: "rpc_error",
-              details: { ...payload.error, endpoint, batchId },
+              details: { ...payload.error, endpoint: this.redactEndpoint(endpoint), batchId },
             }
           );
         }
@@ -124,7 +124,7 @@ export class RoutemeshClient {
             `RouteMesh request timed out calling ${method}`,
             {
               type: "timeout_error",
-              details: { endpoint },
+              details: { endpoint: this.redactEndpoint(endpoint) },
               cause: error,
             }
           );
@@ -136,7 +136,7 @@ export class RoutemeshClient {
         }
 
         throw new RoutemeshError(
-          `Network error while calling ${method} via ${endpoint}`,
+          `Network error while calling ${method} via ${this.redactEndpoint(endpoint)}`,
           {
             type: "network_error",
             cause: error,
@@ -153,6 +153,15 @@ export class RoutemeshClient {
     return uniqueBaseUrls.map(
       (baseUrl) => `${baseUrl}/rpc/${chainId}/${this.config.apiKey}`
     );
+  }
+
+  private redactEndpoint(endpoint: string): string {
+    const key = this.config.apiKey;
+    const masked =
+      key.length > 6
+        ? `${key.slice(0, 3)}***${key.slice(-3)}`
+        : "***";
+    return endpoint.replace(key, masked);
   }
 
   private async wait(attempt: number): Promise<void> {
