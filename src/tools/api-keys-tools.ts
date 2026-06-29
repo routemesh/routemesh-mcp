@@ -101,10 +101,11 @@ export function registerApiKeysTools(
         "Update an existing customer API key on the RouteMesh API server (PUT /api-keys/:apiKey).",
         "Requires a customer-scoped management token configured via ROUTEMESH_MGMT_TOKEN.",
         "Supports partial updates — only provided fields are changed.",
+        "The apiKey parameter is the secret API key string (from create_api_key).",
         "The secret api_key value is never returned by this endpoint.",
       ].join("\n"),
       inputSchema: {
-        apiKey: z.string().min(1).describe("The API key identifier to update"),
+        apiKey: z.string().min(1).describe("The API key string to update (from create_api_key)"),
         allowed_domains: z
           .array(z.string().url())
           .optional()
@@ -131,6 +132,17 @@ export function registerApiKeysTools(
         }
         if (active !== undefined) {
           updateInput.active = active;
+        }
+        if (Object.keys(updateInput).length === 0) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: "Tool execution failed: At least one update field (allowed_domains, name, or active) must be provided",
+              },
+            ],
+          };
         }
         const updated = await client.updateApiKey(
           apiKey,

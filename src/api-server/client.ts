@@ -87,9 +87,8 @@ export class ApiServerClient {
       headers["content-type"] = "application/json";
     }
 
-    const body: string | undefined = options?.body
-      ? JSON.stringify(options.body)
-      : undefined;
+    const body: string | undefined =
+      options?.body !== undefined ? JSON.stringify(options.body) : undefined;
 
     const fetchOptions: RequestInit = {
       method,

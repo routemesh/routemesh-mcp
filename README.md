@@ -96,12 +96,12 @@ Examples:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `apiKey` | string | yes | The API key identifier to update |
+| `apiKey` | string | yes | The API key string to update (from `create_api_key`) |
 | `name` | string | no | Updated human-readable name |
 | `active` | boolean | no | Activate or deactivate the key |
 | `allowed_domains` | string[] | no | Updated array of allowed domains |
 
-The secret `api_key` value is **never** returned by this endpoint.
+At least one of `name`, `active`, or `allowed_domains` must be provided. The secret `api_key` value is **never** returned by this endpoint.
 
 ## Prerequisites
 

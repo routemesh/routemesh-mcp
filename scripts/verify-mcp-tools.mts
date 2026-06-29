@@ -197,8 +197,15 @@ async function run() {
       const createdData = parseJsonText(createText);
 
       let apiKeyValue: string | null = null;
-      if (createdData && typeof createdData === "object" && "api_key" in createdData) {
-        apiKeyValue = (createdData as Record<string, unknown>).api_key as string;
+      let apiKeyIdValue: number | null = null;
+      if (createdData && typeof createdData === "object") {
+        const data = createdData as Record<string, unknown>;
+        if ("api_key" in data) {
+          apiKeyValue = data.api_key as string;
+        }
+        if ("id" in data) {
+          apiKeyIdValue = data.id as number;
+        }
       }
 
       check("create_api_key returns secret api_key value", () =>
