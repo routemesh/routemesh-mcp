@@ -1,9 +1,17 @@
 import { ApiServerError } from "./errors.js";
-import type { UsageQueryParams, UsageResponse } from "./types.js";
+import type {
+  CreatedApiKey,
+  CreateApiKeyInput,
+  CustomerApiKey,
+  UpdateApiKeyInput,
+  UsageQueryParams,
+  UsageResponse,
+  ApiChainInfo,
+} from "./types.js";
 
 export type ApiServerClientConfig = {
   baseUrl: string;
-  mgmtToken: string;
+  mgmtToken?: string;
   timeoutMs: number;
 };
 
@@ -39,6 +47,10 @@ export function buildUsageQueryString(params: UsageQueryParams): string {
   return query ? `?${query}` : "";
 }
 
+function parseJsonResponse(response: Response): Promise<unknown> {
+  return response.json();
+}
+
 export class ApiServerClient {
   private readonly config: ApiServerClientConfig;
 
@@ -46,19 +58,51 @@ export class ApiServerClient {
     this.config = config;
   }
 
-  async getUsage(params: UsageQueryParams = {}): Promise<UsageResponse> {
-    const query = buildUsageQueryString(params);
-    const url = `${this.config.baseUrl.replace(/\/$/, "")}/usage${query}`;
+  private async request<T>(
+    method: string,
+    path: string,
+    options?: { body?: unknown; authenticated?: boolean }
+  ): Promise<T> {
+    if (options?.authenticated && !this.config.mgmtToken) {
+      throw new ApiServerError(
+        "Management token is required for authenticated API server requests",
+        {
+          type: "http_error",
+          status: 401,
+        }
+      );
+    }
+
+    const baseUrl = this.config.baseUrl.replace(/\/$/, "");
+    const url = `${baseUrl}${path}`;
+    const headers: Record<string, string> = {
+      accept: "application/json",
+    };
+
+    if (options?.authenticated && this.config.mgmtToken) {
+      headers["x-api-key"] = this.config.mgmtToken;
+    }
+
+    if (options?.body !== undefined) {
+      headers["content-type"] = "application/json";
+    }
+
+    const body: string | undefined = options?.body
+      ? JSON.stringify(options.body)
+      : undefined;
+
+    const fetchOptions: RequestInit = {
+      method,
+      headers,
+      signal: AbortSignal.timeout(this.config.timeoutMs),
+    };
+
+    if (body !== undefined) {
+      fetchOptions.body = body;
+    }
 
     try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "x-api-key": this.config.mgmtToken,
-          accept: "application/json",
-        },
-        signal: AbortSignal.timeout(this.config.timeoutMs),
-      });
+      const response = await fetch(url, fetchOptions);
 
       if (!response.ok) {
         const rawDetails = await response.text();
@@ -71,7 +115,7 @@ export class ApiServerClient {
           }
         }
 
-        throw new ApiServerError("API server HTTP error while fetching usage", {
+        throw new ApiServerError("API server HTTP error", {
           type: "http_error",
           status: response.status,
           details,
@@ -79,9 +123,9 @@ export class ApiServerClient {
       }
 
       try {
-        return (await response.json()) as UsageResponse;
+        return (await parseJsonResponse(response)) as T;
       } catch (error) {
-        throw new ApiServerError("Invalid JSON response from API server usage endpoint", {
+        throw new ApiServerError("Invalid JSON response from API server", {
           type: "invalid_response",
           cause: error,
         });
@@ -92,16 +136,51 @@ export class ApiServerClient {
       }
 
       if (error instanceof Error && error.name === "TimeoutError") {
-        throw new ApiServerError("API server request timed out while fetching usage", {
+        throw new ApiServerError("API server request timed out", {
           type: "timeout_error",
           cause: error,
         });
       }
 
-      throw new ApiServerError("Network error while fetching usage from API server", {
+      throw new ApiServerError("Network error from API server", {
         type: "network_error",
         cause: error,
       });
     }
+  }
+
+  async getUsage(params: UsageQueryParams = {}): Promise<UsageResponse> {
+    const query = buildUsageQueryString(params);
+    return this.request<UsageResponse>("GET", `/usage${query}`, {
+      authenticated: true,
+    });
+  }
+
+  async getChains(): Promise<ApiChainInfo[]> {
+    return this.request<ApiChainInfo[]>("GET", "/chains");
+  }
+
+  async listApiKeys(): Promise<CustomerApiKey[]> {
+    return this.request<CustomerApiKey[]>("GET", "/api-keys", {
+      authenticated: true,
+    });
+  }
+
+  async createApiKey(input: CreateApiKeyInput): Promise<CreatedApiKey> {
+    return this.request<CreatedApiKey>("POST", "/api-keys", {
+      body: input,
+      authenticated: true,
+    });
+  }
+
+  async updateApiKey(
+    apiKey: string,
+    input: UpdateApiKeyInput
+  ): Promise<CustomerApiKey> {
+    return this.request<CustomerApiKey>(
+      "PUT",
+      `/api-keys/${encodeURIComponent(apiKey)}`,
+      { body: input, authenticated: true }
+    );
   }
 }

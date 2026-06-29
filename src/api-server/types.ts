@@ -37,3 +37,31 @@ export type UsageQueryParams = {
 };
 
 export type UsageResponse = Record<string, unknown>;
+
+export type ApiChainInfo = { chain_id: string; name: string };
+
+export type RoutingStrategy = "performance" | "economy";
+
+export type CustomerApiKey = {
+  id: number;
+  name: string | null;
+  active: boolean;
+  allowed_domains: string[];
+  routing_strategy: RoutingStrategy;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateApiKeyInput = {
+  allowed_domains: string[];
+  routing_strategy: RoutingStrategy;
+  name?: string;
+};
+
+export type UpdateApiKeyInput = {
+  allowed_domains?: string[];
+  name?: string;
+  active?: boolean;
+};
+
+export type CreatedApiKey = CustomerApiKey & { api_key: string };

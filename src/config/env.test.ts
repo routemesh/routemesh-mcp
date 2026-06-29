@@ -14,7 +14,6 @@ describe("loadConfig", () => {
     expect(config.backupBaseUrl).toBe("https://lb2.routeme.sh");
     expect(config.timeoutMs).toBe(20_000);
     expect(config.retryAttempts).toBe(2);
-    expect(config.llmsUrl).toBe("https://routeme.sh/llms.txt");
   });
 
   it("loads management token and api server URL when provided", () => {

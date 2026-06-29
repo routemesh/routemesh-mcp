@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "verify:live": "tsx scripts/verify-api-server.mts",
+    "verify:mcp": "tsx scripts/verify-mcp-tools.mts"
   },
   "keywords": [],
   "author": "",

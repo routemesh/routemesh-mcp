@@ -3,7 +3,7 @@ import { ApiServerClient } from "../api-server/client.js";
 import type { AppConfig } from "../config/env.js";
 import { RoutemeshClient } from "../routemesh/client.js";
 import { registerReadTools } from "./read-tools.js";
-import { registerUsageTools } from "./usage-tools.js";
+import { registerCustomerTools } from "./customer-tools.js";
 
 export function registerTools(server: McpServer, config: AppConfig): void {
   const client = new RoutemeshClient({
@@ -13,17 +13,15 @@ export function registerTools(server: McpServer, config: AppConfig): void {
     retryAttempts: config.retryAttempts,
   });
 
-  registerReadTools(server, client, {
-    llmsUrl: config.llmsUrl,
+  const apiServerClient = new ApiServerClient({
+    baseUrl: config.apiServerUrl,
+    ...(config.mgmtToken ? { mgmtToken: config.mgmtToken } : {}),
     timeoutMs: config.timeoutMs,
   });
 
+  registerReadTools(server, client, apiServerClient);
+
   if (config.mgmtToken) {
-    const apiServerClient = new ApiServerClient({
-      baseUrl: config.apiServerUrl,
-      mgmtToken: config.mgmtToken,
-      timeoutMs: config.timeoutMs,
-    });
-    registerUsageTools(server, apiServerClient);
+    registerCustomerTools(server, apiServerClient);
   }
 }

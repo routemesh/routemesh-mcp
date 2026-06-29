@@ -8,6 +8,7 @@ import {
 } from "../api-server/types.js";
 import { ApiServerError, formatApiServerError } from "../api-server/errors.js";
 import { formatError, formatResult } from "./shared.js";
+import { registerApiKeysTools } from "./api-keys-tools.js";
 
 const rfc3339Schema = z
   .string()
@@ -20,7 +21,10 @@ const usageIncludeSchema = z.enum(USAGE_INCLUDE_SECTIONS);
 const usageGroupBySchema = z.enum(USAGE_GROUP_BY_VALUES);
 const usageGranularitySchema = z.enum(USAGE_GRANULARITY_VALUES);
 
-export function registerUsageTools(server: McpServer, client: ApiServerClient): void {
+export function registerCustomerTools(
+  server: McpServer,
+  client: ApiServerClient
+): void {
   server.registerTool(
     "get_usage",
     {
@@ -48,7 +52,9 @@ export function registerUsageTools(server: McpServer, client: ApiServerClient): 
       inputSchema: {
         from: rfc3339Schema
           .optional()
-          .describe("RFC3339 start timestamp (default: now minus 30 days)"),
+          .describe(
+            "RFC3339 start timestamp (default: now minus 30 days)"
+          ),
         to: rfc3339Schema
           .optional()
           .describe("RFC3339 end timestamp (default: now UTC)"),
@@ -81,10 +87,15 @@ export function registerUsageTools(server: McpServer, client: ApiServerClient): 
           .min(1)
           .max(100)
           .optional()
-          .describe("Max rows for top_methods and group_by (default 20, max 100)"),
+          .describe(
+            "Max rows for top_methods and group_by (default 20, max 100)"
+          ),
       },
     },
-    async ({ from, to, include, groupBy, chainId, apiKeyId, granularity, limit }, _extra) => {
+    async (
+      { from, to, include, groupBy, chainId, apiKeyId, granularity, limit },
+      _extra
+    ) => {
       try {
         const usage = await client.getUsage({
           ...(from ? { from } : {}),
@@ -115,4 +126,6 @@ export function registerUsageTools(server: McpServer, client: ApiServerClient): 
       }
     }
   );
+
+  registerApiKeysTools(server, client);
 }
