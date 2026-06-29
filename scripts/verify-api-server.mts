@@ -112,44 +112,61 @@ async function run() {
     const apiKeyArray = apiKeys as unknown[];
     check("listApiKeys() returns an array", () => Array.isArray(apiKeyArray));
 
-    // createApiKey
-    const timestamp = Date.now();
+    // createApiKey (opt-in: mutates live account state)
+    const verifyWrite = process.env.VERIFY_WRITE === "1" || process.env.VERIFY_WRITE === "true";
     let createdKey: { api_key: string; id: number } | null = null;
-    try {
-      createdKey = await client.createApiKey({
-        name: `mcp-verify-${timestamp}`,
-        allowed_domains: ["https://example.com"],
-        routing_strategy: "performance",
-      });
-    } catch {
-      // check will report
-    }
+    if (!verifyWrite) {
+      console.log("  (skipped) createApiKey/updateApiKey — set VERIFY_WRITE=1 to enable");
+      skipped += 2;
+    } else {
+      const timestamp = Date.now();
 
-    check("createApiKey() returns 201/200 with api_key secret and id", () =>
-      createdKey !== null && typeof createdKey === "object" &&
-      typeof createdKey.api_key === "string" &&
-      typeof createdKey.id === "number"
-    );
-
-    // updateApiKey
-    let updatedKey: { name?: string; active?: boolean } | null = null;
-    if (createdKey) {
       try {
-        updatedKey = await client.updateApiKey(createdKey.api_key, {
-          name: `mcp-verify-updated-${timestamp}`,
-          active: false,
+        createdKey = await client.createApiKey({
+          name: `mcp-verify-${timestamp}`,
+          allowed_domains: ["https://example.com"],
+          routing_strategy: "performance",
         });
       } catch {
         // check will report
       }
 
-      check("updateApiKey() returns 200 with updated fields", () =>
-        updatedKey !== null && typeof updatedKey === "object" &&
-        updatedKey.name === `mcp-verify-updated-${timestamp}` &&
-        updatedKey.active === false
+      check("createApiKey() returns 201/200 with api_key secret and id", () =>
+        createdKey !== null && typeof createdKey === "object" &&
+        typeof createdKey.api_key === "string" &&
+        typeof createdKey.id === "number"
       );
-    } else {
-      check("updateApiKey() — skipped (no key created)", () => false);
+
+      // updateApiKey
+      let updatedKey: { name?: string; active?: boolean } | null = null;
+      if (createdKey) {
+        try {
+          updatedKey = await client.updateApiKey(createdKey.api_key, {
+            name: `mcp-verify-updated-${timestamp}`,
+            active: false,
+          });
+        } catch {
+          // check will report
+        }
+
+        check("updateApiKey() returns 200 with updated fields", () =>
+          updatedKey !== null && typeof updatedKey === "object" &&
+          updatedKey.name === `mcp-verify-updated-${timestamp}` &&
+          updatedKey.active === false
+        );
+      } else {
+        check("updateApiKey() — skipped (no key created)", () => false);
+      }
+
+      // Cleanup: ensure test key is always deactivated
+      if (createdKey && (!updatedKey || updatedKey.active !== false)) {
+        try {
+          await client.updateApiKey(createdKey.api_key, { active: false });
+          console.log("  (cleanup) Deactivated test key");
+        } catch {
+          // best-effort cleanup
+        }
+      }
     }
 
     // listApiKeys again to verify
@@ -157,16 +174,6 @@ async function run() {
       await client.listApiKeys();
     } catch {
       // check will report
-    }
-
-    // Cleanup: ensure test key is always deactivated
-    if (createdKey && (!updatedKey || updatedKey.active !== false)) {
-      try {
-        await client.updateApiKey(createdKey.api_key, { active: false });
-        console.log("  (cleanup) Deactivated test key");
-      } catch {
-        // best-effort cleanup
-      }
     }
   }
 

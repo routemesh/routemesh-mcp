@@ -135,121 +135,179 @@ async function run() {
 
     // Test rpc_list_chains
     console.log("\nTesting rpc_list_chains...");
-    const chainsResult = await client.callTool({
-      name: "rpc_list_chains",
-      arguments: { limit: 5 },
-    });
-    const chainsText = parseContent(chainsResult);
-    const chainsData = parseJsonText(chainsText);
-    const chainItems = Array.isArray((chainsData as Record<string, unknown>)?.items)
-      ? ((chainsData as Record<string, unknown>).items as unknown[])
-      : [];
+    const verifyWrite = process.env.VERIFY_WRITE === "1" || process.env.VERIFY_WRITE === "true";
+    let listChainsResult;
+    try {
+      listChainsResult = await client.callTool({
+        name: "rpc_list_chains",
+        arguments: { limit: 5 },
+      });
+    } catch (error) {
+      check("rpc_list_chains returns results", () => {
+        throw new Error(`Tool call failed: ${error instanceof Error ? error.message : String(error)}`);
+      });
+      listChainsResult = null;
+    }
+    if (listChainsResult) {
+      const chainsText = parseContent(listChainsResult);
+      const chainsData = parseJsonText(chainsText);
+      const chainItems = Array.isArray((chainsData as Record<string, unknown>)?.items)
+        ? ((chainsData as Record<string, unknown>).items as unknown[])
+        : [];
 
-    check("rpc_list_chains returns non-empty items", () => chainItems.length > 0);
-    if (chainItems.length > 0) {
-      check("rpc_list_chains items have chain_id and name", () =>
-        typeof (chainItems[0] as Record<string, unknown>)?.chain_id === "string" &&
-        typeof (chainItems[0] as Record<string, unknown>)?.name === "string"
-      );
+      check("rpc_list_chains returns non-empty items", () => chainItems.length > 0);
+      if (chainItems.length > 0) {
+        check("rpc_list_chains items have chain_id and name", () =>
+          typeof (chainItems[0] as Record<string, unknown>)?.chain_id === "string" &&
+          typeof (chainItems[0] as Record<string, unknown>)?.name === "string"
+        );
+      }
     }
 
     // Only test customer tools if mgmt token is available
     if (customerToken) {
       // Test get_usage
       console.log("\nTesting get_usage...");
-      const usageResult = await client.callTool({
-        name: "get_usage",
-        arguments: {},
-      });
-      const usageText = parseContent(usageResult);
-      const usageData = parseJsonText(usageText);
+      let usageResult;
+      try {
+        usageResult = await client.callTool({
+          name: "get_usage",
+          arguments: {},
+        });
+      } catch (error) {
+        check("get_usage returns results", () => {
+          throw new Error(`Tool call failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
+        usageResult = null;
+      }
+      if (usageResult) {
+        const usageText = parseContent(usageResult);
+        const usageData = parseJsonText(usageText);
 
-      check("get_usage returns success with usage data", () =>
-        usageData !== null && typeof usageData === "object"
-      );
+        check("get_usage returns success with usage data", () =>
+          usageData !== null && typeof usageData === "object"
+        );
+      }
 
       // Test list_api_keys
       console.log("\nTesting list_api_keys...");
-      const listResult = await client.callTool({
-        name: "list_api_keys",
-        arguments: {},
-      });
-      const listText = parseContent(listResult);
-      const listData = parseJsonText(listText);
-      const listItems = Array.isArray((listData as Record<string, unknown>)?.items)
-        ? ((listData as Record<string, unknown>).items as unknown[])
-        : [];
-
-      check("list_api_keys returns array items", () => Array.isArray(listItems));
-
-      // Test create_api_key
-      console.log("\nTesting create_api_key...");
-      const ts = Date.now();
-      const createResult = await client.callTool({
-        name: "create_api_key",
-        arguments: {
-          allowed_domains: ["https://example.com"],
-          routing_strategy: "performance",
-          name: `mcp-verify-${ts}`,
-        },
-      });
-      const createText = parseContent(createResult);
-      const createdData = parseJsonText(createText);
-
-      let apiKeyValue: string | null = null;
-      let apiKeyIdValue: number | null = null;
-      if (createdData && typeof createdData === "object") {
-        const data = createdData as Record<string, unknown>;
-        if ("api_key" in data) {
-          apiKeyValue = data.api_key as string;
-        }
-        if ("id" in data) {
-          apiKeyIdValue = data.id as number;
-        }
-      }
-
-      check("create_api_key returns secret api_key value", () =>
-        typeof apiKeyValue === "string" && apiKeyValue.length > 0
-      );
-
-      // Test update_api_key
-      console.log("\nTesting update_api_key...");
-      let updateResultKnown = false;
-      if (apiKeyValue) {
-        const updateResult = await client.callTool({
-          name: "update_api_key",
-          arguments: {
-            apiKey: apiKeyValue,
-            name: `mcp-verify-updated-${ts}`,
-            active: false,
-          },
+      let listResult;
+      try {
+        listResult = await client.callTool({
+          name: "list_api_keys",
+          arguments: {},
         });
-        const updateText = parseContent(updateResult);
-        const updateData = parseJsonText(updateText);
+      } catch (error) {
+        check("list_api_keys returns results", () => {
+          throw new Error(`Tool call failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
+        listResult = null;
+      }
+      if (listResult) {
+        const listText = parseContent(listResult);
+        const listData = parseJsonText(listText);
+        const listItems = Array.isArray((listData as Record<string, unknown>)?.items)
+          ? ((listData as Record<string, unknown>).items as unknown[])
+          : [];
 
-        updateResultKnown =
-          typeof updateData === "object" &&
-          (updateData as Record<string, unknown>).name === `mcp-verify-updated-${ts}` &&
-          (updateData as Record<string, unknown>).active === false;
-
-        check("update_api_key reflects updated name and active:false", () =>
-          updateResultKnown
-        );
-      } else {
-        check("update_api_key — skipped (no api_key from create)", () => false);
+        check("list_api_keys returns array items", () => Array.isArray(listItems));
       }
 
-      // Cleanup: ensure test key is always deactivated
-      if (apiKeyValue) {
+      // Test create_api_key (opt-in: mutates live account state)
+      if (verifyWrite) {
+        console.log("\nTesting create_api_key...");
+        const ts = Date.now();
+        let createResult;
         try {
-          await client.callTool({
-            name: "update_api_key",
-            arguments: { apiKey: apiKeyValue, active: false },
+          createResult = await client.callTool({
+            name: "create_api_key",
+            arguments: {
+              allowed_domains: ["https://example.com"],
+              routing_strategy: "performance",
+              name: `mcp-verify-${ts}`,
+            },
           });
-          console.log("  (cleanup) Deactivated test key");
-        } catch {
-          // best-effort cleanup
+        } catch (error) {
+          check("create_api_key returns results", () => {
+            throw new Error(`Tool call failed: ${error instanceof Error ? error.message : String(error)}`);
+          });
+          createResult = null;
         }
+        if (createResult) {
+          const createText = parseContent(createResult);
+          const createdData = parseJsonText(createText);
+
+          let apiKeyValue: string | null = null;
+          let apiKeyIdValue: number | null = null;
+          if (createdData && typeof createdData === "object") {
+            const data = createdData as Record<string, unknown>;
+            if ("api_key" in data) {
+              apiKeyValue = data.api_key as string;
+            }
+            if ("id" in data) {
+              apiKeyIdValue = data.id as number;
+            }
+          }
+
+          check("create_api_key returns secret api_key value", () =>
+            typeof apiKeyValue === "string" && apiKeyValue.length > 0
+          );
+
+          // Test update_api_key
+          console.log("\nTesting update_api_key...");
+          let updateResultKnown = false;
+          if (apiKeyValue) {
+            let updateResult;
+            try {
+              updateResult = await client.callTool({
+                name: "update_api_key",
+                arguments: {
+                  apiKey: apiKeyValue,
+                  name: `mcp-verify-updated-${ts}`,
+                  active: false,
+                },
+              });
+            } catch (error) {
+              check("update_api_key returns results", () => {
+                throw new Error(`Tool call failed: ${error instanceof Error ? error.message : String(error)}`);
+              });
+              updateResult = null;
+            }
+            if (updateResult) {
+              const updateText = parseContent(updateResult);
+              const updateData = parseJsonText(updateText);
+
+              updateResultKnown =
+                typeof updateData === "object" &&
+                (updateData as Record<string, unknown>).name === `mcp-verify-updated-${ts}` &&
+                (updateData as Record<string, unknown>).active === false;
+
+              check("update_api_key reflects updated name and active:false", () =>
+                updateResultKnown
+              );
+            } else {
+              check("update_api_key — skipped (no result)", () => false);
+            }
+          } else {
+            check("update_api_key — skipped (no api_key from create)", () => false);
+          }
+
+          // Cleanup: ensure test key is always deactivated
+          if (apiKeyValue) {
+            try {
+              await client.callTool({
+                name: "update_api_key",
+                arguments: { apiKey: apiKeyValue, active: false },
+              });
+              console.log("  (cleanup) Deactivated test key");
+            } catch {
+              // best-effort cleanup
+            }
+          }
+        }
+      } else {
+        console.log("\n  (skipped) create_api_key/update_api_key — set VERIFY_WRITE=1 to enable");
+        skipped += 2;
       }
     }
   } finally {

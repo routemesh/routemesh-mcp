@@ -66,7 +66,10 @@ export function registerReadTools(
                     );
                 }
 
-                const page = filtered.slice(offset, offset + limit);
+                const page = filtered.slice(offset, offset + limit).map((chain) => ({
+                    ...chain,
+                    chainId: Number.parseInt(chain.chain_id, 10),
+                }));
                 return formatResult("RouteMesh chains", {
                     total: filtered.length,
                     offset,
