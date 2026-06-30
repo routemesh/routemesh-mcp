@@ -8,6 +8,7 @@ import {
 } from "../api-server/types.js";
 import { ApiServerError, formatApiServerError } from "../api-server/errors.js";
 import { formatError, formatResult } from "./shared.js";
+import { registerApiKeysTools } from "./api-keys-tools.js";
 
 const rfc3339Schema = z
   .string()
@@ -20,7 +21,10 @@ const usageIncludeSchema = z.enum(USAGE_INCLUDE_SECTIONS);
 const usageGroupBySchema = z.enum(USAGE_GROUP_BY_VALUES);
 const usageGranularitySchema = z.enum(USAGE_GRANULARITY_VALUES);
 
-export function registerUsageTools(server: McpServer, client: ApiServerClient): void {
+export function registerCustomerTools(
+  server: McpServer,
+  client: ApiServerClient
+): void {
   server.registerTool(
     "get_usage",
     {
@@ -39,16 +43,18 @@ export function registerUsageTools(server: McpServer, client: ApiServerClient): 
         "Query parameters:",
         "- from / to: RFC3339 window (to defaults to now UTC)",
         "- include: summary, balance, by_chain, by_api_key, by_api_key_chain, top_methods, time_series, by_scenario (default: summary,balance)",
-        "- group_by: flat grouped rows (overrides include when set) — chain, api_key, api_key,chain, method, day",
-        "- chain_id: filter to one chain",
-        "- api_key_id: filter to one customer API key (positive int)",
+        "- groupBy: flat grouped rows (overrides include when set) — chain, api_key, api_key,chain, method, day",
+        "- chainId: filter to one chain",
+        "- apiKeyId: filter to one customer API key (positive int)",
         "- granularity: day or hour for time_series",
         "- limit: max rows for top_methods and group_by (default 20, max 100)",
       ].join("\n"),
       inputSchema: {
         from: rfc3339Schema
           .optional()
-          .describe("RFC3339 start timestamp (default: now minus 30 days)"),
+          .describe(
+            "RFC3339 start timestamp (default: now minus 30 days)"
+          ),
         to: rfc3339Schema
           .optional()
           .describe("RFC3339 end timestamp (default: now UTC)"),
@@ -81,15 +87,20 @@ export function registerUsageTools(server: McpServer, client: ApiServerClient): 
           .min(1)
           .max(100)
           .optional()
-          .describe("Max rows for top_methods and group_by (default 20, max 100)"),
+          .describe(
+            "Max rows for top_methods and group_by (default 20, max 100)"
+          ),
       },
     },
-    async ({ from, to, include, groupBy, chainId, apiKeyId, granularity, limit }, _extra) => {
+    async (
+      { from, to, include, groupBy, chainId, apiKeyId, granularity, limit },
+      _extra
+    ) => {
       try {
         const usage = await client.getUsage({
           ...(from ? { from } : {}),
           ...(to ? { to } : {}),
-          ...(include ? { include } : {}),
+          ...(include && include.length > 0 ? { include } : {}),
           ...(groupBy ? { groupBy } : {}),
           ...(chainId ? { chainId } : {}),
           ...(apiKeyId !== undefined ? { apiKeyId } : {}),
@@ -115,4 +126,6 @@ export function registerUsageTools(server: McpServer, client: ApiServerClient): 
       }
     }
   );
+
+  registerApiKeysTools(server, client);
 }

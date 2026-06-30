@@ -23,7 +23,7 @@
 
 ## Tools
 
-- `rpc_list_chains` - discover and filter supported chains
+- `rpc_list_chains` - discover and filter supported chains (via GET /chains on the API server)
 - `rpc_call` - generic JSON-RPC escape hatch
 - `rpc_get_block` - fetch by number/tag/hash
 - `rpc_get_transaction` - fetch transaction by hash
@@ -35,16 +35,25 @@
 - `rpc_get_fee_data` - gas price + EIP-1559 hints
 - `rpc_trace_transaction` - trace/debug transaction best effort
 
-- `rpc_trace_transaction` - trace/debug transaction best effort
 - `get_usage` - customer usage summary and balance from the API server (requires management token)
+- `list_api_keys` - list customer API keys (requires management token)
+- `create_api_key` - create a new API key with allowed domains and routing strategy (requires management token)
+- `update_api_key` - update an existing API key (requires management token)
 
-## Usage reporting
+## Customer tools
 
-When `ROUTEMESH_MGMT_TOKEN` is set, the server exposes `get_usage`, which calls the API server `GET /usage` endpoint with the customer-scoped management token in the `x-api-key` header.
+When `ROUTEMESH_MGMT_TOKEN` is set, the server exposes customer-scoped tools that call the API server with the management token in the `x-api-key` header.
 
-Create a management token in the RouteMesh dashboard with a route allowlist that includes `GET /usage`.
+Create a management token in the RouteMesh dashboard with a route allowlist that includes:
 
-### `get_usage` query parameters
+- `GET /usage`
+- `GET /api-keys`
+- `POST /api-keys`
+- `PUT /api-keys/*`
+
+### `get_usage` — usage summary and balance
+
+`get_usage` fetches customer usage data from the API server (GET /usage).
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -65,11 +74,40 @@ Examples:
 - Top methods on a chain: `include=["top_methods"]`, `chainId="ethereum"`, `limit=10`
 - Flat grouped rows: `groupBy="api_key,chain"`, `limit=50`
 
+### `list_api_keys` — list API keys
+
+`list_api_keys` calls GET /api-keys and returns an array of API key metadata (id, name, active, allowed_domains, routing_strategy, timestamps). The secret `api_key` value is **never** returned by this endpoint.
+
+### `create_api_key` — create a new API key
+
+`create_api_key` calls POST /api-keys to provision a new key. The request requires:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `allowed_domains` | string[] | yes | Array of allowed domains (valid URLs) |
+| `routing_strategy` | `"performance"` or `"economy"` | yes | Routing strategy for this key |
+| `name` | string | no | Optional human-readable name |
+
+**Important:** The response includes the secret `api_key` value, which is **only shown once at creation**. Store it securely — it cannot be retrieved again.
+
+### `update_api_key` — update an existing API key
+
+`update_api_key` calls PUT /api-keys/:apiKey for partial updates:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | yes | The API key string to update (from `create_api_key`) |
+| `name` | string | no | Updated human-readable name |
+| `active` | boolean | no | Activate or deactivate the key |
+| `allowed_domains` | string[] | no | Updated array of allowed domains |
+
+At least one of `name`, `active`, or `allowed_domains` must be provided. The secret `api_key` value is **never** returned by this endpoint.
+
 ## Prerequisites
 
 - Node.js 20+
 - RouteMesh API key ([sign up](https://routeme.sh/auth/signup))
-- Customer management token with `GET /usage` in the route allowlist (optional, for `get_usage`)
+- Customer management token with `GET /usage`, `GET /api-keys`, `POST /api-keys`, and `PUT /api-keys/*` in the route allowlist (optional, for customer tools)
 
 ## Quick start
 
@@ -163,9 +201,8 @@ npm publish --access public
 - The server is read-only for on-chain RPC tools.
 - `get_usage` reads billing/usage data from the API server; it does not use Atlas.
 - Requests use `ROUTEMESH_BASE_URL` first, then `ROUTEMESH_BACKUP_BASE_URL` on retryable failures.
-- `rpc_list_chains` parses chain data from `https://routeme.sh/llms.txt`.
+- `rpc_list_chains` reads chain data from `GET /chains` on the API server (`ROUTEMESH_API_SERVER_URL`).
 
 ## References
 
-- RouteMesh chain list: [https://routeme.sh/llms.txt](https://routeme.sh/llms.txt)
 - RouteMesh docs: [https://routeme.sh/docs](https://routeme.sh/docs)

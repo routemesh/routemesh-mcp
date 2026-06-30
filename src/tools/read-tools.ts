@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
+import type { ApiServerClient } from "../api-server/client.js";
 import type { RoutemeshClient } from "../routemesh/client.js";
 import {
     addressSchema,
     chainIdSchema,
-    fetchChainsFromLlms,
     formatError,
     formatResult,
     hexStringSchema,
@@ -30,14 +30,14 @@ const txRequestSchema = z.object({
 export function registerReadTools(
     server: McpServer,
     client: RoutemeshClient,
-    options: { llmsUrl: string; timeoutMs: number },
+    apiServerClient: ApiServerClient,
 ): void {
     server.registerTool(
         "rpc_list_chains",
         {
             title: "List RouteMesh chains",
             description:
-                "Discover supported chains from RouteMesh and filter by chain ID or name query.",
+                "Discover supported chains from RouteMesh API server (GET /chains) and filter by chain ID or name query.",
             inputSchema: {
                 query: z.string().min(1).optional(),
                 chainId: chainIdSchema.optional(),
@@ -47,28 +47,29 @@ export function registerReadTools(
         },
         async ({ query, chainId, limit, offset }, _extra) => {
             try {
-                const chains = await fetchChainsFromLlms(
-                    options.llmsUrl,
-                    options.timeoutMs,
-                );
+                const chains = await apiServerClient.getChains();
                 let filtered = chains;
 
                 if (chainId) {
                     filtered = filtered.filter(
-                        (chain) => chain.chainId === chainId,
+                        (chain) =>
+                            Number.parseInt(chain.chain_id, 10) === chainId,
                     );
                 }
 
                 if (query) {
                     const lower = query.toLowerCase();
                     filtered = filtered.filter((chain) =>
-                        `${chain.name} ${chain.chainId}`
+                        `${chain.name} ${chain.chain_id}`
                             .toLowerCase()
                             .includes(lower),
                     );
                 }
 
-                const page = filtered.slice(offset, offset + limit);
+                const page = filtered.slice(offset, offset + limit).map((chain) => ({
+                    ...chain,
+                    chainId: Number.parseInt(chain.chain_id, 10),
+                }));
                 return formatResult("RouteMesh chains", {
                     total: filtered.length,
                     offset,

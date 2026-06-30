@@ -16,7 +16,6 @@ const envSchema = z.object({
     .optional()
     .transform((value) => (value ? Number.parseInt(value, 10) : 2))
     .pipe(z.number().int().min(0).max(5)),
-  ROUTEMESH_LLMS_URL: z.string().url().default("https://routeme.sh/llms.txt"),
 });
 
 export type AppConfig = {
@@ -27,7 +26,6 @@ export type AppConfig = {
   backupBaseUrl: string;
   timeoutMs: number;
   retryAttempts: number;
-  llmsUrl: string;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -48,6 +46,5 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     backupBaseUrl: data.ROUTEMESH_BACKUP_BASE_URL,
     timeoutMs: data.ROUTEMESH_TIMEOUT_MS,
     retryAttempts: data.ROUTEMESH_RETRY_ATTEMPTS,
-    llmsUrl: data.ROUTEMESH_LLMS_URL,
   };
 }
