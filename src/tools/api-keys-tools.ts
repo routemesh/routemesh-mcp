@@ -55,9 +55,10 @@ export function registerApiKeysTools(
       ].join("\n"),
       inputSchema: {
         allowed_domains: z
-          .array(z.string().url())
-          .min(1)
-          .describe("Array of allowed domains for the API key"),
+          .array(z.string())
+          .describe(
+            "Array of allowed domains for the API key (plain domains like 'example.com' or https URLs). Required by the API; the server normalizes entries and silently drops invalid ones."
+          ),
         routing_strategy: routingStrategySchema.describe(
           "Routing strategy: 'performance' or 'economy'"
         ),
@@ -107,9 +108,11 @@ export function registerApiKeysTools(
       inputSchema: {
         apiKey: z.string().min(1).describe("The API key string to update (from create_api_key)"),
         allowed_domains: z
-          .array(z.string().url())
+          .array(z.string())
           .optional()
-          .describe("Updated array of allowed domains"),
+          .describe(
+            "Updated array of allowed domains (plain domains or https URLs; the server normalizes entries). Omit to leave unchanged."
+          ),
         name: z
           .string()
           .max(100)
