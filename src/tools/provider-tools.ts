@@ -5,6 +5,7 @@ import type { ApiServerClient } from "../api-server/client.js";
 import {
   PROVIDER_NODE_STATUSES,
   type ProviderNodeSource,
+  type ProviderPlanMethodInput,
 } from "../api-server/types.js";
 import { ApiServerError, formatApiServerError } from "../api-server/errors.js";
 import { formatError, formatResult } from "./shared.js";
@@ -252,6 +253,69 @@ export function registerProviderTools(
       try {
         const status = await client.getProviderNodeStatus(nodeId);
         return formatResult(`Provider node ${nodeId} status`, status);
+      } catch (error) {
+        return providerErrorResult(error);
+      }
+    }
+  );
+
+  server.registerTool(
+    "provider_upsert_plan_methods",
+    {
+      title: "Upsert provider plan methods",
+      description: [
+        "Insert/update the RPC method rows for a plan owned by the authenticated",
+        "provider on the RouteMesh API server (POST /provider/plans/:planId/methods).",
+        PROVIDER_TOKEN_NOTE,
+        "Adds method rows (method, vm, node_target_type, cost, optional rate limits and chain_id).",
+        "The plan must be owned by the token's provider (404 otherwise). Returns a plain-text",
+        "success message on 201.",
+      ].join("\n"),
+      inputSchema: {
+        planId: planIdSchema.describe("Plan ID to update (must be owned by the provider)"),
+        methods: z
+          .array(
+            z.object({
+              method: z.string().min(1).describe("RPC method name, e.g. eth_blockNumber"),
+              vm: z.string().min(1).describe("VM type, e.g. 'evm'"),
+              node_target_type: z
+                .string()
+                .min(1)
+                .describe("Node target type the method routes to, e.g. 'evm'"),
+              cost: z.number().int().min(0).describe("Credit cost per call (0 = free)"),
+              rate_limit: z
+                .number()
+                .int()
+                .min(0)
+                .optional()
+                .describe("Optional per-call rate limit"),
+              rate_limit_interval_sec: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe("Rate limit window in seconds"),
+              chain_id: z
+                .string()
+                .min(1)
+                .nullable()
+                .optional()
+                .describe("Chain ID this cost applies to; omit/null for all chains"),
+            })
+          )
+          .min(1)
+          .max(500)
+          .describe("1-500 RPC method rows to upsert"),
+      },
+    },
+    async ({ planId, methods }, _extra) => {
+      try {
+        const result = await client.upsertProviderPlanMethods(planId, methods as ProviderPlanMethodInput[]);
+        return formatResult("Plan methods upsert", {
+          message: result,
+          planId,
+          methodsUpstream: methods.length,
+        });
       } catch (error) {
         return providerErrorResult(error);
       }

@@ -187,3 +187,15 @@ export type ProviderSetNodeStatusResponse = {
   node_id: number;
   status: string;
 };
+
+// A single RPC method row for POST /provider/plans/:planId/methods.
+// Mirrors models.RPCMethodInput on the API server.
+export type ProviderPlanMethodInput = {
+  method: string;
+  vm: string;
+  node_target_type: string;
+  cost: number;
+  rate_limit?: number;
+  rate_limit_interval_sec?: number;
+  chain_id?: string | null;
+};

@@ -125,6 +125,7 @@ async function run() {
         !toolNames.includes("provider_list_plans") &&
         !toolNames.includes("provider_get_plan_methods") &&
         !toolNames.includes("provider_get_node_status") &&
+        !toolNames.includes("provider_upsert_plan_methods") &&
         !toolNames.includes("provider_upsert_node") &&
         !toolNames.includes("provider_upsert_ws_node") &&
         !toolNames.includes("provider_set_node_status")
@@ -143,6 +144,7 @@ async function run() {
         toolNames.includes("provider_list_plans") &&
         toolNames.includes("provider_get_plan_methods") &&
         toolNames.includes("provider_get_node_status") &&
+        toolNames.includes("provider_upsert_plan_methods") &&
         toolNames.includes("provider_upsert_node") &&
         toolNames.includes("provider_upsert_ws_node") &&
         toolNames.includes("provider_set_node_status")

@@ -16,6 +16,7 @@ import type {
   ProviderUpsertWSNodeResponse,
   ProviderSetNodeStatusInput,
   ProviderSetNodeStatusResponse,
+  ProviderPlanMethodInput,
 } from "./types.js";
 
 export type ApiServerClientConfig = {
@@ -70,7 +71,7 @@ export class ApiServerClient {
   private async request<T>(
     method: string,
     path: string,
-    options?: { body?: unknown; authenticated?: boolean }
+    options?: { body?: unknown; authenticated?: boolean; raw?: boolean }
   ): Promise<T> {
     if (options?.authenticated && !this.config.mgmtToken) {
       throw new ApiServerError(
@@ -128,6 +129,10 @@ export class ApiServerClient {
           status: response.status,
           details,
         });
+      }
+
+      if (options?.raw) {
+        return (await response.text()) as T;
       }
 
       try {
@@ -246,6 +251,19 @@ export class ApiServerClient {
       "POST",
       "/provider/nodes/status",
       { body: input, authenticated: true }
+    );
+  }
+
+  async upsertProviderPlanMethods(
+    planId: number,
+    methods: ProviderPlanMethodInput[]
+  ): Promise<string> {
+    // The API server responds with a plain-text success message (201),
+    // not JSON — use raw response parsing.
+    return this.request<string>(
+      "POST",
+      `/provider/plans/${planId}/methods`,
+      { body: { methods }, authenticated: true, raw: true }
     );
   }
 }

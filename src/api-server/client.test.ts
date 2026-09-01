@@ -614,4 +614,47 @@ describe("ApiServerClient provider-scoped routes", () => {
       restore();
     }
   });
+
+  it("calls POST /provider/plans/:planId/methods and parses the plain-text success response", async () => {
+    const originalFetch = globalThis.fetch;
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ url: String(input), init });
+      return new Response("Plan methods inserted successfully", {
+        status: 201,
+        headers: { "content-type": "text/plain" },
+      });
+    }) as typeof fetch;
+
+    try {
+      const methods = [
+        {
+          method: "eth_blockNumber",
+          vm: "evm",
+          node_target_type: "evm",
+          cost: 1,
+          rate_limit: 100,
+          rate_limit_interval_sec: 1,
+          chain_id: "8453",
+        },
+      ];
+      const result = await client.upsertProviderPlanMethods(120, methods);
+      expect(result).toBe("Plan methods inserted successfully");
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.url).toBe(
+        "https://api.routeme.sh/provider/plans/120/methods"
+      );
+      expect(calls[0]?.init?.method).toBe("POST");
+      const init = calls[0]?.init as RequestInit;
+      expect(
+        (init.headers as Record<string, string>)["x-api-key"]
+      ).toBe("provider-mgmt-token");
+      expect(
+        (init.headers as Record<string, string>)["content-type"]
+      ).toBe("application/json");
+      expect(JSON.parse(init.body as string)).toEqual({ methods });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

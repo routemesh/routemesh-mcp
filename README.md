@@ -42,6 +42,7 @@
 - `update_api_key` - update an existing API key (requires management token)
 - `provider_list_plans` - list the provider's RPC plans (requires provider-linked management token)
 - `provider_get_plan_methods` - list the RPC methods of one of the provider's plans (requires provider-linked management token)
+- `provider_upsert_plan_methods` - insert/update the RPC method rows for a provider plan (requires provider-linked management token)
 - `provider_get_node_status` - sync status of one of the provider's nodes (requires provider-linked management token)
 - `provider_upsert_node` - create/update an HTTP node on a provider plan (requires provider-linked management token)
 - `provider_upsert_ws_node` - create/update a WebSocket node on a provider plan (requires provider-linked management token)
@@ -126,6 +127,17 @@ Calls GET /provider/plans/:planId/methods.
 | `planId` | positive int | Plan owned by the provider (404 otherwise) |
 
 Returns the plan's RPC method rows (method, vm, node_target_type, cost, rate limits, chain_id) or an empty array.
+
+### `provider_upsert_plan_methods` — insert/update a plan's RPC methods
+
+Calls POST /provider/plans/:planId/methods.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `planId` | positive int | yes | Plan owned by the provider (404 otherwise) |
+| `methods` | array (1–500) | yes | RPC method rows to insert/update |
+
+Each `methods[]` item supports: `method`, `vm`, `node_target_type`, `cost`, optional `rate_limit`, optional `rate_limit_interval_sec`, and optional `chain_id` (omit/null for all chains). Returns a plain-text success message on 201.
 
 ### `provider_get_node_status` — node sync status
 
