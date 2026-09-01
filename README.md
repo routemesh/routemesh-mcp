@@ -20,6 +20,7 @@
 - "Run `eth_getCode` on chain 8453 for address `0x...`."
 - "Show my RouteMesh usage for the last 7 days broken down by chain."
 - "What is my current RouteMesh balance and request count this month?"
+- "List my RouteMesh provider plans and the methods on each plan."
 
 ## Tools
 
@@ -39,6 +40,12 @@
 - `list_api_keys` - list customer API keys (requires management token)
 - `create_api_key` - create a new API key with allowed domains and routing strategy (requires management token)
 - `update_api_key` - update an existing API key (requires management token)
+- `provider_list_plans` - list the provider's RPC plans (requires provider-linked management token)
+- `provider_get_plan_methods` - list the RPC methods of one of the provider's plans (requires provider-linked management token)
+- `provider_get_node_status` - sync status of one of the provider's nodes (requires provider-linked management token)
+- `provider_upsert_node` - create/update an HTTP node on a provider plan (requires provider-linked management token)
+- `provider_upsert_ws_node` - create/update a WebSocket node on a provider plan (requires provider-linked management token)
+- `provider_set_node_status` - enable/disable/delete a provider node (requires provider-linked management token)
 
 ## Customer tools
 
@@ -47,6 +54,8 @@ When `ROUTEMESH_MGMT_TOKEN` is set, the server exposes customer-scoped tools tha
 Create a management token in the RouteMesh dashboard ([Mgmt Tokens page](https://routeme.sh/app/consumer/mgmt-tokens)): click **New Token**, give it a label (e.g. `mcp`), and copy the secret — it is shown only once.
 
 Customer management tokens are scoped automatically to the customer management routes (`GET /usage`, `GET /api-keys`, `POST /api-keys`, `PUT /api-keys/:id`). There is no route allowlist to configure — use a dedicated token for the MCP server so you can revoke it independently.
+
+Provider tools additionally require the token's customer to be linked to a provider; they are then scoped automatically to `/provider/*` routes, and resources owned by another provider come back as 404.
 
 ### `get_usage` — usage summary and balance
 
@@ -99,6 +108,66 @@ Examples:
 | `allowed_domains` | string[] | no | Updated array of allowed domains |
 
 At least one of `name`, `active`, or `allowed_domains` must be provided. The secret `api_key` value is **never** returned by this endpoint.
+
+## Provider tools
+
+Provider tools mirror the provider-scoped API routes (`/provider/*`) and require a management token whose customer is linked to a provider. All writes are ownership-checked server-side: a `plan_id` / node that belongs to another provider is rejected (404), so tools can only affect the linked provider's own resources.
+
+### `provider_list_plans` — list the provider's plans
+
+Calls GET /provider/plans. Returns the provider's plans (id, name, price, quota, rate limits, billing fields) or an empty array.
+
+### `provider_get_plan_methods` — list a plan's RPC methods
+
+Calls GET /provider/plans/:planId/methods.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `planId` | positive int | Plan owned by the provider (404 otherwise) |
+
+Returns the plan's RPC method rows (method, vm, node_target_type, cost, rate limits, chain_id) or an empty array.
+
+### `provider_get_node_status` — node sync status
+
+Calls GET /provider/nodes/:nodeId/status.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `nodeId` | positive int | Node owned by the provider (404 otherwise) |
+
+Returns `{ node_id, in_sync, status }` where `status` is `ok` or `out_of_sync`.
+
+### `provider_upsert_node` — create/update an HTTP node
+
+Calls PUT /provider/nodes. The node is screened server-side; mandatory screening failures are returned as 400.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `plan_id` | positive int | yes | Plan owned by the provider |
+| `url` | URL | yes | HTTP(S) endpoint of the node |
+| `vm` | string | yes | VM type, e.g. `evm` |
+| `rate_limit` | number (>= 0) | yes | Requests the node supports per interval |
+| `rate_limit_interval_sec` | positive int | yes | Rate limit window in seconds |
+| `source` | enum | no | `provider` (default), `website`, `erpc`, `node_request`, `new_chain_request` |
+
+### `provider_upsert_ws_node` — create/update a WebSocket node
+
+Calls PUT /provider/nodes/ws. The server dials the node and verifies it accepts `eth_subscribe` (`newHeads`) before persisting.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `plan_id` | positive int | yes | Plan owned by the provider |
+| `chain_id` | string | yes | Chain ID served, e.g. `137` |
+| `url` | string | yes | `wss://` endpoint of the node |
+
+### `provider_set_node_status` — enable/disable/delete a node
+
+Calls POST /provider/nodes/status.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `node_id` | positive int | yes | Node owned by the provider (404 otherwise) |
+| `status` | enum | yes | `healthy` (enable), `disabled by provider` (disable), or `provider-deleted` (delete / hide) |
 
 ## Prerequisites
 

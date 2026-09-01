@@ -65,3 +65,125 @@ export type UpdateApiKeyInput = {
 };
 
 export type CreatedApiKey = CustomerApiKey & { api_key: string };
+
+// ── Provider-scoped API (GET/PUT/POST /provider/*) ─────────────────────────
+// Authenticated with the same customer management token, but the token's
+// customer must be linked to a provider. Resources owned by another provider
+// are reported as 404 (existence is not leaked).
+
+export type ProviderPlan = {
+  id: number;
+  created_at: string;
+  provider: string;
+  provider_id: number;
+  name: string;
+  price: number;
+  quota: number;
+  quota_unit: string;
+  description: string;
+  overage_price: number;
+  overage_limit: number;
+  rate_limit_req: number;
+  rate_limit_req_interval_sec: number;
+  rate_limit_cr: number;
+  rate_limit_cr_interval_sec: number;
+  billing_fixed_day?: number | null;
+  billing_interval_days?: number | null;
+  billing_anchored_start_date?: string | null;
+};
+
+export type ProviderPlanMethod = {
+  id: number;
+  created_at: string;
+  plan_id: number;
+  method: string;
+  vm: string;
+  node_target_type: string;
+  cost: number;
+  rate_limit: number | null;
+  rate_limit_interval_sec: number | null;
+  // An empty/absent chain ID means the cost applies to all chains for the plan.
+  chain_id: string | null;
+};
+
+export type ProviderNodeStatusResponse = {
+  node_id: number;
+  in_sync: boolean;
+  status: "ok" | "out_of_sync";
+};
+
+export type ProviderNodeSource =
+  | "provider"
+  | "website"
+  | "erpc"
+  | "node_request"
+  | "new_chain_request";
+
+export type ProviderNode = {
+  id: number;
+  plan_id: number;
+  url: string;
+  vm: string;
+  chain_id: string;
+  rate_limit: number | null;
+  rate_limit_interval_sec: number | null;
+  node_type: string;
+  source: ProviderNodeSource;
+  node_request_id?: number | null;
+  created_at: string;
+};
+
+export type ProviderUpsertNodeInput = {
+  plan_id: number;
+  url: string;
+  vm: string;
+  rate_limit: number;
+  rate_limit_interval_sec: number;
+  source?: ProviderNodeSource;
+};
+
+export type ProviderUpsertNodeResponse = {
+  message: string;
+  node: ProviderNode;
+  status: string;
+};
+
+export type ProviderNodeWS = {
+  id: number;
+  plan_id: number;
+  chain_id: string;
+  url: string;
+  created_at: string;
+};
+
+export type ProviderUpsertWSNodeInput = {
+  plan_id: number;
+  chain_id: string;
+  url: string;
+};
+
+export type ProviderUpsertWSNodeResponse = {
+  message: string;
+  node_ws: ProviderNodeWS;
+  status: string;
+};
+
+// Statuses a provider may set via POST /provider/nodes/status
+// (portal parity: enable / disable / delete).
+export const PROVIDER_NODE_STATUSES = [
+  "healthy",
+  "disabled by provider",
+  "provider-deleted",
+] as const;
+
+export type ProviderNodeStatus = (typeof PROVIDER_NODE_STATUSES)[number];
+
+export type ProviderSetNodeStatusInput = {
+  node_id: number;
+  status: ProviderNodeStatus;
+};
+
+export type ProviderSetNodeStatusResponse = {
+  node_id: number;
+  status: string;
+};

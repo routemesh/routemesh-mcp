@@ -121,6 +121,14 @@ async function run() {
         !toolNames.includes("create_api_key") &&
         !toolNames.includes("update_api_key")
       );
+      check("Provider tools are absent when no mgmt token", () =>
+        !toolNames.includes("provider_list_plans") &&
+        !toolNames.includes("provider_get_plan_methods") &&
+        !toolNames.includes("provider_get_node_status") &&
+        !toolNames.includes("provider_upsert_node") &&
+        !toolNames.includes("provider_upsert_ws_node") &&
+        !toolNames.includes("provider_set_node_status")
+      );
       check("Read tools are present", () =>
         toolNames.includes("rpc_list_chains")
       );
@@ -130,6 +138,14 @@ async function run() {
         toolNames.includes("list_api_keys") &&
         toolNames.includes("create_api_key") &&
         toolNames.includes("update_api_key")
+      );
+      check("Provider tools are present when mgmt token is set", () =>
+        toolNames.includes("provider_list_plans") &&
+        toolNames.includes("provider_get_plan_methods") &&
+        toolNames.includes("provider_get_node_status") &&
+        toolNames.includes("provider_upsert_node") &&
+        toolNames.includes("provider_upsert_ws_node") &&
+        toolNames.includes("provider_set_node_status")
       );
     }
 

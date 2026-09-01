@@ -7,6 +7,15 @@ import type {
   UsageQueryParams,
   UsageResponse,
   ApiChainInfo,
+  ProviderPlan,
+  ProviderPlanMethod,
+  ProviderNodeStatusResponse,
+  ProviderUpsertNodeInput,
+  ProviderUpsertNodeResponse,
+  ProviderUpsertWSNodeInput,
+  ProviderUpsertWSNodeResponse,
+  ProviderSetNodeStatusInput,
+  ProviderSetNodeStatusResponse,
 } from "./types.js";
 
 export type ApiServerClientConfig = {
@@ -179,6 +188,63 @@ export class ApiServerClient {
     return this.request<CustomerApiKey>(
       "PUT",
       `/api-keys/${encodeURIComponent(apiKey)}`,
+      { body: input, authenticated: true }
+    );
+  }
+
+  // ── Provider-scoped routes ───────────────────────────────────────────────
+  // All require a customer management token whose customer is linked to a
+  // provider (mgmtauth.CategoryProvider on the API server side).
+
+  async listProviderPlans(): Promise<ProviderPlan[]> {
+    return this.request<ProviderPlan[]>("GET", "/provider/plans", {
+      authenticated: true,
+    });
+  }
+
+  async getProviderPlanMethods(planId: number): Promise<ProviderPlanMethod[]> {
+    return this.request<ProviderPlanMethod[]>(
+      "GET",
+      `/provider/plans/${planId}/methods`,
+      { authenticated: true }
+    );
+  }
+
+  async getProviderNodeStatus(
+    nodeId: number
+  ): Promise<ProviderNodeStatusResponse> {
+    return this.request<ProviderNodeStatusResponse>(
+      "GET",
+      `/provider/nodes/${nodeId}/status`,
+      { authenticated: true }
+    );
+  }
+
+  async upsertProviderNode(
+    input: ProviderUpsertNodeInput
+  ): Promise<ProviderUpsertNodeResponse> {
+    return this.request<ProviderUpsertNodeResponse>("PUT", "/provider/nodes", {
+      body: input,
+      authenticated: true,
+    });
+  }
+
+  async upsertProviderWSNode(
+    input: ProviderUpsertWSNodeInput
+  ): Promise<ProviderUpsertWSNodeResponse> {
+    return this.request<ProviderUpsertWSNodeResponse>(
+      "PUT",
+      "/provider/nodes/ws",
+      { body: input, authenticated: true }
+    );
+  }
+
+  async setProviderNodeStatus(
+    input: ProviderSetNodeStatusInput
+  ): Promise<ProviderSetNodeStatusResponse> {
+    return this.request<ProviderSetNodeStatusResponse>(
+      "POST",
+      "/provider/nodes/status",
       { body: input, authenticated: true }
     );
   }
