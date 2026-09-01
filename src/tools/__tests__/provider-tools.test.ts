@@ -104,6 +104,15 @@ describe("provider_upsert_node URL validation", () => {
     expect(upsertProviderNode).toHaveBeenCalledTimes(1);
   });
 
+  it("accepts a public IPv6 literal", async () => {
+    const { client, upsertProviderNode } = await setup();
+    await client.callTool({
+      name: "provider_upsert_node",
+      arguments: validArgs("https://[2606:4700:4700::1111]"),
+    });
+    expect(upsertProviderNode).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     "https://127.0.0.1:6379",
     "http://10.0.0.5",
@@ -117,6 +126,21 @@ describe("provider_upsert_node URL validation", () => {
     "https://[fc00::1]",
     "https://[fe80::1]",
     "https://[::ffff:127.0.0.1]",
+    // IPv4-compatible IPv6 (::/96) embedding non-public IPv4: WHATWG
+    // serializes ::127.0.0.1 as ::7f00:1 and ::0.0.127.0 as ::7f00.
+    "https://[::7f00:1]:8545",
+    "https://[::127.0.0.1]:8545",
+    "https://[::0.0.127.0]",
+    "https://[::c0a8:101]",
+    "https://[::192.168.1.1]",
+    "https://[::a9fe:a9fe]",
+    "https://[::169.254.169.254]",
+    "https://[::a00:1]",
+    "https://[::10.0.0.1]",
+    // DNS services that resolve hostnames to embedded IP literals.
+    "https://127.0.0.1.nip.io",
+    "https://192.168.1.1.sslip.io",
+    "https://10.0.0.1.xip.io",
     "ftp://node.example.com",
     "file:///etc/passwd",
     "not-a-url",
@@ -158,6 +182,9 @@ describe("provider_upsert_ws_node URL validation", () => {
     "https://ws.example.com",
     "wss://10.0.0.1",
     "wss://169.254.169.254",
+    "wss://[::7f00:1]",
+    "wss://[::127.0.0.1]",
+    "wss://127.0.0.1.nip.io",
     "wss://localhost",
     "wss://",
   ])("rejects blocked or invalid URL %s without invoking the client", async (url) => {

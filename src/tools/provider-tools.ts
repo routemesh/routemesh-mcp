@@ -52,6 +52,12 @@ function isNonPublicNodeHost(hostname: string): boolean {
     hostname.startsWith("[") && hostname.endsWith("]")
       ? hostname.slice(1, -1)
       : hostname;
+  // Embedded dotted-quad IPv6 (e.g. ::127.0.0.1) that node:net isIP may
+  // not classify as IPv6 — never trust it as an opaque DNS name.
+  const lowerLiteral = literal.toLowerCase();
+  if (lowerLiteral.startsWith("::") && lowerLiteral.includes(".")) {
+    return isNonPublicIPv4(lowerLiteral.slice(2));
+  }
   const family = isIP(literal);
   if (family === 4) {
     return isNonPublicIPv4(literal);
@@ -76,6 +82,19 @@ function isNonPublicNodeHost(hostname: string): boolean {
         (combined >>> 16) & 0xff
       );
     }
+    // IPv4-compatible IPv6 (::/96) — WHATWG serializes ::127.0.0.1 as
+    // ::7f00:1 and ::0.0.127.0 as ::7f00, so decode the embedded IPv4
+    // (last 32 bits) and reject it when non-public.
+    const compat = lower.match(/^::([0-9a-f]{1,4})(?::([0-9a-f]{1,4}))?$/);
+    if (compat) {
+      const hi = parseInt(compat[1] ?? "0", 16);
+      const lo = compat[2] === undefined ? 0 : parseInt(compat[2], 16);
+      const combined = hi * 0x10000 + lo;
+      return isNonPublicIPv4Quads(
+        (combined >>> 24) & 0xff,
+        (combined >>> 16) & 0xff
+      );
+    }
     return (
       lower === "::" ||
       lower === "::1" ||
@@ -87,13 +106,19 @@ function isNonPublicNodeHost(hostname: string): boolean {
       lower.startsWith("feb")
     );
   }
-  // DNS name — reject well-known loopback/metadata names. Screening by
-  // resolved address is not possible without a blocking DNS lookup.
+  // DNS name — reject well-known loopback/metadata names and services that
+  // resolve hostnames to embedded IP literals. Screening by resolved address
+  // is not possible without a blocking DNS lookup.
   const lower = hostname.toLowerCase();
   return (
     lower === "localhost" ||
     lower.endsWith(".localhost") ||
-    lower === "metadata.google.internal"
+    lower === "metadata.google.internal" ||
+    // Free services that resolve hostnames to embedded IP literals,
+    // including 127.0.0.1.nip.io -> 127.0.0.1.
+    lower.endsWith(".nip.io") ||
+    lower.endsWith(".sslip.io") ||
+    lower.endsWith(".xip.io")
   );
 }
 
