@@ -384,3 +384,277 @@ describe("ApiServerClient", () => {
     }
   });
 });
+
+describe("ApiServerClient provider-scoped routes", () => {
+  function mockFetchOnce(body: unknown, status = 200) {
+    const originalFetch = globalThis.fetch;
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ url: String(input), init });
+      return new Response(JSON.stringify(body), {
+        status,
+        headers: { "content-type": "application/json" },
+      });
+    }) as typeof fetch;
+    return {
+      calls,
+      restore: () => {
+        globalThis.fetch = originalFetch;
+      },
+    };
+  }
+
+  const client = new ApiServerClient({
+    baseUrl: "https://api.routeme.sh",
+    mgmtToken: "provider-mgmt-token",
+    timeoutMs: 1000,
+  });
+
+  it("calls GET /provider/plans with the management token header", async () => {
+    const plans = [
+      {
+        id: 120,
+        created_at: "2026-01-01T00:00:00Z",
+        provider: "acme",
+        provider_id: 7,
+        name: "acme-base",
+        price: 0.01,
+        quota: 100,
+        quota_unit: "credit",
+        description: "",
+        overage_price: 0.02,
+        overage_limit: 50,
+        rate_limit_req: 100,
+        rate_limit_req_interval_sec: 1,
+        rate_limit_cr: 1000,
+        rate_limit_cr_interval_sec: 1,
+      },
+    ];
+    const { calls, restore } = mockFetchOnce(plans);
+    try {
+      const result = await client.listProviderPlans();
+      expect(result).toEqual(plans);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.url).toBe("https://api.routeme.sh/provider/plans");
+      expect(calls[0]?.init?.method).toBe("GET");
+      expect(
+        (calls[0]?.init?.headers as Record<string, string>)["x-api-key"]
+      ).toBe("provider-mgmt-token");
+    } finally {
+      restore();
+    }
+  });
+
+  it("calls GET /provider/plans/:planId/methods with the plan id in the path", async () => {
+    const methods = [
+      {
+        id: 1,
+        created_at: "2026-01-01T00:00:00Z",
+        plan_id: 120,
+        method: "eth_blockNumber",
+        vm: "evm",
+        node_target_type: "evm",
+        cost: 1,
+        rate_limit: 100,
+        rate_limit_interval_sec: 1,
+        chain_id: null,
+      },
+    ];
+    const { calls, restore } = mockFetchOnce(methods);
+    try {
+      const result = await client.getProviderPlanMethods(120);
+      expect(result).toEqual(methods);
+      expect(calls[0]?.url).toBe(
+        "https://api.routeme.sh/provider/plans/120/methods"
+      );
+      expect(calls[0]?.init?.method).toBe("GET");
+      expect(
+        (calls[0]?.init?.headers as Record<string, string>)["x-api-key"]
+      ).toBe("provider-mgmt-token");
+    } finally {
+      restore();
+    }
+  });
+
+  it("calls GET /provider/nodes/:nodeId/status and parses the sync status", async () => {
+    const { calls, restore } = mockFetchOnce({
+      node_id: 18523,
+      in_sync: false,
+      status: "out_of_sync",
+    });
+    try {
+      const result = await client.getProviderNodeStatus(18523);
+      expect(result).toEqual({
+        node_id: 18523,
+        in_sync: false,
+        status: "out_of_sync",
+      });
+      expect(calls[0]?.url).toBe(
+        "https://api.routeme.sh/provider/nodes/18523/status"
+      );
+      expect(calls[0]?.init?.method).toBe("GET");
+    } finally {
+      restore();
+    }
+  });
+
+  it("calls PUT /provider/nodes with a JSON body and the management token header", async () => {
+    const node = {
+      id: 55,
+      plan_id: 120,
+      url: "https://node.example.com",
+      vm: "evm",
+      chain_id: "1",
+      rate_limit: 100,
+      rate_limit_interval_sec: 1,
+      node_type: "full",
+      source: "provider",
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    const { calls, restore } = mockFetchOnce({
+      message: "Node upserted successfully",
+      node,
+      status: "healthy",
+    });
+    try {
+      const result = await client.upsertProviderNode({
+        plan_id: 120,
+        url: "https://node.example.com",
+        vm: "evm",
+        rate_limit: 100,
+        rate_limit_interval_sec: 1,
+      });
+      expect(result.node).toEqual(node);
+      expect(result.status).toBe("healthy");
+      expect(calls[0]?.url).toBe("https://api.routeme.sh/provider/nodes");
+      expect(calls[0]?.init?.method).toBe("PUT");
+      const init = calls[0]?.init as RequestInit;
+      expect(
+        (init.headers as Record<string, string>)["x-api-key"]
+      ).toBe("provider-mgmt-token");
+      expect(
+        (init.headers as Record<string, string>)["content-type"]
+      ).toBe("application/json");
+      expect(JSON.parse(init.body as string)).toEqual({
+        plan_id: 120,
+        url: "https://node.example.com",
+        vm: "evm",
+        rate_limit: 100,
+        rate_limit_interval_sec: 1,
+      });
+    } finally {
+      restore();
+    }
+  });
+
+  it("calls PUT /provider/nodes/ws with a JSON body", async () => {
+    const nodeWS = {
+      id: 56,
+      plan_id: 120,
+      chain_id: "137",
+      url: "wss://ws-node.example.com",
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    const { calls, restore } = mockFetchOnce({
+      message: "WebSocket node upserted successfully",
+      node_ws: nodeWS,
+      status: "healthy",
+    });
+    try {
+      const result = await client.upsertProviderWSNode({
+        plan_id: 120,
+        chain_id: "137",
+        url: "wss://ws-node.example.com",
+      });
+      expect(result.node_ws).toEqual(nodeWS);
+      expect(calls[0]?.url).toBe("https://api.routeme.sh/provider/nodes/ws");
+      expect(calls[0]?.init?.method).toBe("PUT");
+      expect(JSON.parse((calls[0]?.init as RequestInit).body as string)).toEqual({
+        plan_id: 120,
+        chain_id: "137",
+        url: "wss://ws-node.example.com",
+      });
+    } finally {
+      restore();
+    }
+  });
+
+  it("calls POST /provider/nodes/status with a JSON body", async () => {
+    const { calls, restore } = mockFetchOnce({
+      node_id: 55,
+      status: "disabled by provider",
+    });
+    try {
+      const result = await client.setProviderNodeStatus({
+        node_id: 55,
+        status: "disabled by provider",
+      });
+      expect(result).toEqual({
+        node_id: 55,
+        status: "disabled by provider",
+      });
+      expect(calls[0]?.url).toBe("https://api.routeme.sh/provider/nodes/status");
+      expect(calls[0]?.init?.method).toBe("POST");
+      expect(
+        JSON.parse((calls[0]?.init as RequestInit).body as string)
+      ).toEqual({ node_id: 55, status: "disabled by provider" });
+    } finally {
+      restore();
+    }
+  });
+
+  it("throws ApiServerError with status 403 when the token is not provider-linked", async () => {
+    const { restore } = mockFetchOnce({ error: "provider not resolved" }, 403);
+    try {
+      await expect(client.listProviderPlans()).rejects.toMatchObject({
+        name: "ApiServerError",
+        status: 403,
+      });
+    } finally {
+      restore();
+    }
+  });
+
+  it("calls POST /provider/plans/:planId/methods and parses the plain-text success response", async () => {
+    const originalFetch = globalThis.fetch;
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ url: String(input), init });
+      return new Response("Plan methods inserted successfully", {
+        status: 201,
+        headers: { "content-type": "text/plain" },
+      });
+    }) as typeof fetch;
+
+    try {
+      const methods = [
+        {
+          method: "eth_blockNumber",
+          vm: "evm",
+          node_target_type: "evm",
+          cost: 1,
+          rate_limit: 100,
+          rate_limit_interval_sec: 1,
+          chain_id: "8453",
+        },
+      ];
+      const result = await client.upsertProviderPlanMethods(120, methods);
+      expect(result).toBe("Plan methods inserted successfully");
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.url).toBe(
+        "https://api.routeme.sh/provider/plans/120/methods"
+      );
+      expect(calls[0]?.init?.method).toBe("POST");
+      const init = calls[0]?.init as RequestInit;
+      expect(
+        (init.headers as Record<string, string>)["x-api-key"]
+      ).toBe("provider-mgmt-token");
+      expect(
+        (init.headers as Record<string, string>)["content-type"]
+      ).toBe("application/json");
+      expect(JSON.parse(init.body as string)).toEqual({ methods });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
