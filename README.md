@@ -139,7 +139,7 @@ Returns `{ node_id, in_sync, status }` where `status` is `ok` or `out_of_sync`.
 
 ### `provider_upsert_node` — create/update an HTTP node
 
-Calls PUT /provider/nodes. The node is screened server-side; mandatory screening failures are returned as 400.
+Calls PUT /provider/nodes. The node is screened server-side; mandatory screening failures are returned as 400. The URL must be a public `http://` or `https://` endpoint; loopback, private (10/8, 172.16/12, 192.168/16), and link-local (169.254/16) addresses are rejected client-side before forwarding.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -152,7 +152,7 @@ Calls PUT /provider/nodes. The node is screened server-side; mandatory screening
 
 ### `provider_upsert_ws_node` — create/update a WebSocket node
 
-Calls PUT /provider/nodes/ws. The server dials the node and verifies it accepts `eth_subscribe` (`newHeads`) before persisting.
+Calls PUT /provider/nodes/ws. The server dials the node and verifies it accepts `eth_subscribe` (`newHeads`) before persisting. The URL must be a public `wss://` endpoint; loopback, private, and link-local addresses are rejected client-side before forwarding.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

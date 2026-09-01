@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { isIP } from "node:net";
 import * as z from "zod/v4";
 import type { ApiServerClient } from "../api-server/client.js";
 import {
@@ -19,6 +20,113 @@ const planIdSchema = z
   .int()
   .positive()
   .describe("RouteMesh plan ID (positive int)");
+
+// ── Node URL safety ─────────────────────────────────────────────────────────
+// The API server dials provider node endpoints during screening, so URLs
+// supplied to the upsert tools must point at reachable public endpoints only.
+// Rejecting loopback, private, link-local, and reserved addresses here
+// prevents prompt-injected or attacker-influenced input from making the API
+// server dial internal/metadata endpoints (SSRF), a path the dashboard UI
+// does not expose.
+
+function isNonPublicIPv4Quads(a: number, b: number): boolean {
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a >= 224
+  );
+}
+
+function isNonPublicIPv4(ip: string): boolean {
+  const [a = -1, b = -1] = ip.split(".").map((part) => Number(part));
+  return isNonPublicIPv4Quads(a, b);
+}
+
+function isNonPublicNodeHost(hostname: string): boolean {
+  // WHATWG URL hostnames wrap IPv6 literals in square brackets.
+  const literal =
+    hostname.startsWith("[") && hostname.endsWith("]")
+      ? hostname.slice(1, -1)
+      : hostname;
+  const family = isIP(literal);
+  if (family === 4) {
+    return isNonPublicIPv4(literal);
+  }
+  if (family === 6) {
+    const lower = literal.toLowerCase();
+    if (lower.startsWith("::ffff:")) {
+      // IPv4-mapped IPv6 literal — the URL parser hex-encodes the embedded
+      // IPv4 (e.g. ::ffff:127.0.0.1 -> ::ffff:7f00:1), so handle both forms.
+      const tail = lower.slice(7);
+      if (tail.includes(".")) {
+        return isNonPublicIPv4(tail);
+      }
+      const groups = tail
+        .split(":")
+        .map((part) => parseInt(part, 16) || 0);
+      const hi = groups[groups.length - 2] ?? 0;
+      const lo = groups[groups.length - 1] ?? 0;
+      const combined = hi * 0x10000 + lo;
+      return isNonPublicIPv4Quads(
+        (combined >>> 24) & 0xff,
+        (combined >>> 16) & 0xff
+      );
+    }
+    return (
+      lower === "::" ||
+      lower === "::1" ||
+      lower.startsWith("fc") || // fc00::/7 (unique local)
+      lower.startsWith("fd") ||
+      lower.startsWith("fe8") || // fe80::/10 (link-local)
+      lower.startsWith("fe9") ||
+      lower.startsWith("fea") ||
+      lower.startsWith("feb")
+    );
+  }
+  // DNS name — reject well-known loopback/metadata names. Screening by
+  // resolved address is not possible without a blocking DNS lookup.
+  const lower = hostname.toLowerCase();
+  return (
+    lower === "localhost" ||
+    lower.endsWith(".localhost") ||
+    lower === "metadata.google.internal"
+  );
+}
+
+function isPublicNodeUrl(value: string, allowedProtocols: string[]): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    allowedProtocols.includes(parsed.protocol) &&
+    !isNonPublicNodeHost(parsed.hostname)
+  );
+}
+
+const httpNodeUrlSchema = z
+  .string()
+  .refine(
+    (value) => isPublicNodeUrl(value, ["http:", "https:"]),
+    "Must be a public http(s) URL (loopback, private, and link-local hosts are not allowed)"
+  )
+  .describe(
+    "Public HTTP(S) endpoint URL of the node, e.g. https://node.example.com"
+  );
+
+const wsNodeUrlSchema = z
+  .string()
+  .refine(
+    (value) => isPublicNodeUrl(value, ["wss:"]),
+    "Must be a public wss:// URL (loopback, private, and link-local hosts are not allowed)"
+  )
+  .describe("Public WebSocket endpoint URL, e.g. wss://ws-node.example.com");
 
 const PROVIDER_TOKEN_NOTE = [
   "Requires a management token configured via ROUTEMESH_MGMT_TOKEN whose",
@@ -134,8 +242,10 @@ export function registerProviderTools(
         "authenticated provider on the RouteMesh API server",
         "(PUT /provider/nodes).",
         PROVIDER_TOKEN_NOTE,
-        "The node is screened before persistence; the request fails with 400",
-        "when a mandatory screening test does not pass. A URL already",
+        "The URL must be a public http(s) endpoint; loopback, private, and",
+        "link-local addresses are rejected before forwarding. The node is",
+        "screened before persistence; the request fails with 400 when a",
+        "mandatory screening test does not pass. A URL already",
         "registered to another provider's plan fails with 404; a URL already",
         "registered to a different plan of the same provider fails with 409.",
         "On success the node is set to 'healthy'.",
@@ -144,10 +254,7 @@ export function registerProviderTools(
         plan_id: planIdSchema.describe(
           "Plan ID the node belongs to (must be owned by the provider)"
         ),
-        url: z
-          .string()
-          .url()
-          .describe("HTTP(S) endpoint URL of the node, e.g. https://node.example.com"),
+        url: httpNodeUrlSchema,
         vm: z
           .string()
           .min(1)
@@ -196,7 +303,9 @@ export function registerProviderTools(
         "authenticated provider on the RouteMesh API server",
         "(PUT /provider/nodes/ws).",
         PROVIDER_TOKEN_NOTE,
-        "The URL must be a wss:// endpoint that accepts eth_subscribe",
+        "The URL must be a public wss:// endpoint (loopback, private, and",
+        "link-local addresses are rejected before forwarding) that accepts",
+        "eth_subscribe",
         "('newHeads') — the server dials the node to verify before",
         "persisting. A URL already bound to another provider's plan fails",
         "with 409. On success the node is set to 'healthy'.",
@@ -209,10 +318,7 @@ export function registerProviderTools(
           .string()
           .min(1)
           .describe("Chain ID the WebSocket node serves, e.g. '137'"),
-        url: z
-          .string()
-          .min(1)
-          .describe("WebSocket endpoint URL, e.g. wss://ws-node.example.com"),
+        url: wsNodeUrlSchema,
       },
     },
     async ({ plan_id, chain_id, url }, _extra) => {
