@@ -44,12 +44,9 @@
 
 When `ROUTEMESH_MGMT_TOKEN` is set, the server exposes customer-scoped tools that call the API server with the management token in the `x-api-key` header.
 
-Create a management token in the RouteMesh dashboard with a route allowlist that includes:
+Create a management token in the RouteMesh dashboard ([Mgmt Tokens page](https://routeme.sh/app/consumer/mgmt-tokens)): click **New Token**, give it a label (e.g. `mcp`), and copy the secret — it is shown only once.
 
-- `GET /usage`
-- `GET /api-keys`
-- `POST /api-keys`
-- `PUT /api-keys/*`
+Customer management tokens are scoped automatically to the customer management routes (`GET /usage`, `GET /api-keys`, `POST /api-keys`, `PUT /api-keys/:id`). There is no route allowlist to configure — use a dedicated token for the MCP server so you can revoke it independently.
 
 ### `get_usage` — usage summary and balance
 
@@ -107,7 +104,7 @@ At least one of `name`, `active`, or `allowed_domains` must be provided. The sec
 
 - Node.js 20+
 - RouteMesh API key ([sign up](https://routeme.sh/auth/signup))
-- Customer management token with `GET /usage`, `GET /api-keys`, `POST /api-keys`, and `PUT /api-keys/*` in the route allowlist (optional, for customer tools)
+- Customer management token (optional, for customer tools) — create one on the dashboard's Mgmt Tokens page; it is scoped automatically to the customer management routes
 
 ## Quick start
 
