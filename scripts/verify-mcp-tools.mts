@@ -256,13 +256,13 @@ async function run() {
           // Test update_api_key
           console.log("\nTesting update_api_key...");
           let updateResultKnown = false;
-          if (apiKeyValue) {
+          if (apiKeyIdValue) {
             let updateResult;
             try {
               updateResult = await client.callTool({
                 name: "update_api_key",
                 arguments: {
-                  apiKey: apiKeyValue,
+                  id: apiKeyIdValue,
                   name: `mcp-verify-updated-${ts}`,
                   active: false,
                 },
@@ -289,15 +289,15 @@ async function run() {
               check("update_api_key — skipped (no result)", () => false);
             }
           } else {
-            check("update_api_key — skipped (no api_key from create)", () => false);
+            check("update_api_key — skipped (no id from create)", () => false);
           }
 
           // Cleanup: ensure test key is always deactivated
-          if (apiKeyValue) {
+          if (apiKeyIdValue) {
             try {
               await client.callTool({
                 name: "update_api_key",
-                arguments: { apiKey: apiKeyValue, active: false },
+                arguments: { id: apiKeyIdValue, active: false },
               });
               console.log("  (cleanup) Deactivated test key");
             } catch {

@@ -65,3 +65,29 @@ export type UpdateApiKeyInput = {
 };
 
 export type CreatedApiKey = CustomerApiKey & { api_key: string };
+
+export type RpcPricingQuery = {
+  chainId: number;
+  method?: string;
+  routingStrategy?: RoutingStrategy;
+};
+
+export type RpcPrice = {
+  vm: string;
+  chain_id: string;
+  method: string;
+  routing_strategy: RoutingStrategy;
+  price_per_million: number;
+};
+
+export type WsPricingQuery = {
+  chainId: number;
+  subscriptionType?: string;
+};
+
+export type WsPrice = {
+  vm: string;
+  chain_id: string;
+  subscription_type: string;
+  price_per_million: number;
+};

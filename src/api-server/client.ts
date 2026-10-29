@@ -7,6 +7,10 @@ import type {
   UsageQueryParams,
   UsageResponse,
   ApiChainInfo,
+  RpcPricingQuery,
+  RpcPrice,
+  WsPricingQuery,
+  WsPrice,
 } from "./types.js";
 
 export type ApiServerClientConfig = {
@@ -159,6 +163,19 @@ export class ApiServerClient {
     return this.request<ApiChainInfo[]>("GET", "/chains");
   }
 
+  async getRpcPricing(params: RpcPricingQuery): Promise<RpcPrice[]> {
+    const query = new URLSearchParams({ vm: "evm", chain_id: String(params.chainId) });
+    if (params.method) query.set("method", params.method);
+    if (params.routingStrategy) query.set("routing_strategy", params.routingStrategy);
+    return this.request<RpcPrice[]>("GET", `/pricing/rpc?${query}`);
+  }
+
+  async getWsPricing(params: WsPricingQuery): Promise<WsPrice[]> {
+    const query = new URLSearchParams({ chain_id: String(params.chainId) });
+    if (params.subscriptionType) query.set("subscription_type", params.subscriptionType);
+    return this.request<WsPrice[]>("GET", `/pricing/ws?${query}`);
+  }
+
   async listApiKeys(): Promise<CustomerApiKey[]> {
     return this.request<CustomerApiKey[]>("GET", "/api-keys", {
       authenticated: true,
@@ -173,12 +190,12 @@ export class ApiServerClient {
   }
 
   async updateApiKey(
-    apiKey: string,
+    id: number,
     input: UpdateApiKeyInput
   ): Promise<CustomerApiKey> {
     return this.request<CustomerApiKey>(
       "PUT",
-      `/api-keys/${encodeURIComponent(apiKey)}`,
+      `/api-keys/${id}`,
       { body: input, authenticated: true }
     );
   }

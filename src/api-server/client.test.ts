@@ -252,7 +252,7 @@ describe("ApiServerClient", () => {
     }
   });
 
-  it("calls PUT /api-keys/:apiKey with correct URL encoding for updateApiKey", async () => {
+  it("calls PUT /api-keys/:id using the numeric ID from listApiKeys", async () => {
     const originalFetch = globalThis.fetch;
     const calls: Array<{ url: string; init?: RequestInit }> = [];
 
@@ -279,7 +279,7 @@ describe("ApiServerClient", () => {
         timeoutMs: 1000,
       });
 
-      const result = await client.updateApiKey("rm_live_abc/def+ghi", {
+      const result = await client.updateApiKey(42, {
         name: "updated",
         active: false,
       });
@@ -288,7 +288,7 @@ describe("ApiServerClient", () => {
       expect(result.active).toBe(false);
       expect(calls).toHaveLength(1);
       expect(calls[0]?.url).toBe(
-        "https://api.routeme.sh/api-keys/rm_live_abc%2Fdef%2Bghi"
+        "https://api.routeme.sh/api-keys/42"
       );
       expect(calls[0]?.init?.method).toBe("PUT");
       expect(calls[0]?.init?.body).toBe(
