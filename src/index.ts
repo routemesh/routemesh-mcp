@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config/env.js";
@@ -9,7 +10,7 @@ async function main(): Promise<void> {
 
   const server = new McpServer({
     name: "@routemesh/mcp",
-    version: "0.1.0",
+    version: (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version,
   });
 
   registerTools(server, config);

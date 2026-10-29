@@ -5,6 +5,7 @@ import { RoutemeshClient } from "../routemesh/client.js";
 import { registerReadTools } from "./read-tools.js";
 import { registerPricingTools } from "./pricing-tools.js";
 import { registerCustomerTools } from "./customer-tools.js";
+import { registerProviderTools } from "./provider-tools.js";
 
 export function registerTools(server: McpServer, config: AppConfig): void {
   const client = new RoutemeshClient({
@@ -25,5 +26,6 @@ export function registerTools(server: McpServer, config: AppConfig): void {
 
   if (config.mgmtToken) {
     registerCustomerTools(server, apiServerClient);
+    registerProviderTools(server, apiServerClient);
   }
 }
