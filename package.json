@@ -1,7 +1,7 @@
 {
   "name": "@routemesh/mcp",
-  "version": "1.0.1",
-  "description": "RouteMesh MCP server for cross-chain RPC data and transactions",
+  "version": "1.2.0",
+  "description": "RouteMesh MCP server for cross-chain RPC, live service pricing, account balance, usage, and API key management",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -15,7 +15,16 @@
     "verify:live": "tsx scripts/verify-api-server.mts",
     "verify:mcp": "tsx scripts/verify-mcp-tools.mts"
   },
-  "keywords": [],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "routemesh",
+    "blockchain",
+    "rpc",
+    "evm",
+    "ai-agents",
+    "pricing"
+  ],
   "author": "",
   "license": "ISC",
   "private": false,
@@ -42,5 +51,10 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/routemesh/routemesh-mcp.git"
+  },
+  "homepage": "https://routeme.sh/docs/intro/mcp-server"
 }

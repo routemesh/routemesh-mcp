@@ -6,6 +6,8 @@
 
 - Query multiple EVM chains from one MCP server.
 - Pull useful on-chain data quickly (blocks, txs, logs, balances, fees).
+- Compare live RPC and WebSocket service prices before choosing a route.
+- Inspect account balance, usage by chain/method/key, and manage API keys with a management token.
 - Use generic JSON-RPC when you need methods beyond built-in tools.
 - Reduce RPC endpoint management overhead with RouteMesh routing + failover.
 - Plug into Cursor as an on-demand command, not a background daemon.
@@ -20,11 +22,15 @@
 - "Run `eth_getCode` on chain 8453 for address `0x...`."
 - "Show my RouteMesh usage for the last 7 days broken down by chain."
 - "What is my current RouteMesh balance and request count this month?"
+- "Compare economy and performance prices for eth_call on Base."
+- "What does a million newHeads notifications on Ethereum cost?"
 - "List my RouteMesh provider plans and the methods on each plan."
 
 ## Tools
 
 - `rpc_list_chains` - discover and filter supported chains (via GET /chains on the API server)
+- `rpc_get_pricing` - published USD per million RPC requests, filtered by chain, method, and routing strategy
+- `rpc_get_ws_pricing` - published USD per million WebSocket notifications, filtered by chain and subscription type
 - `rpc_call` - generic JSON-RPC escape hatch
 - `rpc_get_block` - fetch by number/tag/hash
 - `rpc_get_transaction` - fetch transaction by hash
@@ -48,6 +54,16 @@
 - `provider_upsert_ws_node` - create/update a WebSocket node on a provider plan (requires provider-linked management token)
 - `provider_set_node_status` - enable/disable/delete a provider node (requires provider-linked management token)
 
+## Pricing tools
+
+`rpc_get_pricing` accepts a required numeric `chainId`, optional `method`, and optional `routingStrategy` (`economy` or `performance`). Omit the strategy to compare both. It reads `GET /pricing/rpc` and returns `currency: "USD"`, `unit: "per_million_requests"`, and `items` containing the published route prices.
+
+`rpc_get_ws_pricing` accepts a required numeric `chainId` and optional `subscriptionType` (for example `newHeads` or `logs`). It reads `GET /pricing/ws` and returns `unit: "per_million_notifications"`.
+
+Both endpoints are public: no management token is needed and credentials are not forwarded to them. The MCP process still requires its usual RPC API key configuration. Prices describe the RPC service, not blockchain gas fees or account-specific discounts. Empty results mean no matching published price, not a zero price. Pricing endpoints are rate-limited; tools report HTTP errors such as 429 and 503.
+
+For direct HTTP calls, account authentication, and example workflows, see [AI agents and automation](https://routeme.sh/docs/intro/agents). The [OpenAPI reference](https://routeme.sh/docs/api-reference/openapi.json) describes the management and public APIs.
+
 ## Customer tools
 
 When `ROUTEMESH_MGMT_TOKEN` is set, the server exposes customer-scoped tools that call the API server with the management token in the `x-api-key` header.
@@ -57,6 +73,8 @@ Create a management token in the RouteMesh dashboard ([Mgmt Tokens page](https:/
 Customer management tokens are scoped automatically to the customer management routes (`GET /usage`, `GET /api-keys`, `POST /api-keys`, `PUT /api-keys/:id`). There is no route allowlist to configure — use a dedicated token for the MCP server so you can revoke it independently.
 
 Provider tools additionally require the token's customer to be linked to a provider; they are then scoped automatically to `/provider/*` routes, and resources owned by another provider come back as 404.
+
+Add `ROUTEMESH_MGMT_TOKEN` beside `ROUTEMESH_API_KEY` in your MCP client configuration and restart the server.
 
 ### `get_usage` — usage summary and balance
 
@@ -78,7 +96,7 @@ Examples:
 - Default (last 30 days, summary + balance): call `get_usage` with no parameters
 - Custom window with chain breakdown: `from=2026-06-01T00:00:00Z`, `to=2026-06-18T00:00:00Z`, `include=["summary","by_chain"]`
 - Hourly time series for one API key: `include=["time_series"]`, `granularity="hour"`, `apiKeyId=42`
-- Top methods on a chain: `include=["top_methods"]`, `chainId="ethereum"`, `limit=10`
+- Top methods on a chain: `include=["top_methods"]`, `chainId="1"`, `limit=10`
 - Flat grouped rows: `groupBy="api_key,chain"`, `limit=50`
 
 ### `list_api_keys` — list API keys
@@ -99,11 +117,11 @@ Examples:
 
 ### `update_api_key` — update an existing API key
 
-`update_api_key` calls PUT /api-keys/:apiKey for partial updates:
+`update_api_key` calls PUT /api-keys/:id for partial updates. If your integration previously passed an `apiKey` secret, switch to the numeric `id` returned by `list_api_keys`:
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `apiKey` | string | yes | The API key string to update (from `create_api_key`) |
+| `id` | positive int | yes | Numeric key ID from `list_api_keys` or `create_api_key` |
 | `name` | string | no | Updated human-readable name |
 | `active` | boolean | no | Activate or deactivate the key |
 | `allowed_domains` | string[] | no | Updated array of allowed domains |
@@ -185,7 +203,7 @@ Calls POST /provider/nodes/status.
 
 - Node.js 20+
 - RouteMesh API key ([sign up](https://routeme.sh/auth/signup))
-- Customer management token (optional, for customer tools) — create one on the dashboard's Mgmt Tokens page; it is scoped automatically to the customer management routes
+- Customer management token (optional, for account balance, usage, and key management)
 
 ## Quick start
 

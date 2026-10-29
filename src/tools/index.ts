@@ -3,6 +3,7 @@ import { ApiServerClient } from "../api-server/client.js";
 import type { AppConfig } from "../config/env.js";
 import { RoutemeshClient } from "../routemesh/client.js";
 import { registerReadTools } from "./read-tools.js";
+import { registerPricingTools } from "./pricing-tools.js";
 import { registerCustomerTools } from "./customer-tools.js";
 import { registerProviderTools } from "./provider-tools.js";
 
@@ -21,6 +22,7 @@ export function registerTools(server: McpServer, config: AppConfig): void {
   });
 
   registerReadTools(server, client, apiServerClient);
+  registerPricingTools(server, apiServerClient);
 
   if (config.mgmtToken) {
     registerCustomerTools(server, apiServerClient);

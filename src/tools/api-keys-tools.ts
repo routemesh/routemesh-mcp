@@ -99,14 +99,14 @@ export function registerApiKeysTools(
     {
       title: "Update API key",
       description: [
-        "Update an existing customer API key on the RouteMesh API server (PUT /api-keys/:apiKey).",
+        "Update an existing customer API key on the RouteMesh API server (PUT /api-keys/:id).",
         "Requires a customer-scoped management token configured via ROUTEMESH_MGMT_TOKEN.",
         "Supports partial updates — only provided fields are changed.",
-        "The apiKey parameter is the secret API key string (from create_api_key).",
+        "The id parameter is the numeric API key ID from list_api_keys or create_api_key.",
         "The secret api_key value is never returned by this endpoint.",
       ].join("\n"),
       inputSchema: {
-        apiKey: z.string().min(1).describe("The API key string to update (from create_api_key)"),
+        id: z.number().int().positive().describe("Numeric API key ID from list_api_keys or create_api_key"),
         allowed_domains: z
           .array(z.string())
           .optional()
@@ -124,7 +124,7 @@ export function registerApiKeysTools(
           .describe("Activate or deactivate the key"),
       },
     },
-    async ({ apiKey, allowed_domains, name, active }, _extra) => {
+    async ({ id, allowed_domains, name, active }, _extra) => {
       try {
         const updateInput: Record<string, unknown> = {};
         if (allowed_domains !== undefined) {
@@ -148,7 +148,7 @@ export function registerApiKeysTools(
           };
         }
         const updated = await client.updateApiKey(
-          apiKey,
+          id,
           updateInput as Parameters<typeof client.updateApiKey>[1]
         );
         return formatResult("Updated API key", updated);

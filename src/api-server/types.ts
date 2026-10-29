@@ -199,3 +199,29 @@ export type ProviderPlanMethodInput = {
   rate_limit_interval_sec?: number;
   chain_id?: string | null;
 };
+
+export type RpcPricingQuery = {
+  chainId: number;
+  method?: string;
+  routingStrategy?: RoutingStrategy;
+};
+
+export type RpcPrice = {
+  vm: string;
+  chain_id: string;
+  method: string;
+  routing_strategy: RoutingStrategy;
+  price_per_million: number;
+};
+
+export type WsPricingQuery = {
+  chainId: number;
+  subscriptionType?: string;
+};
+
+export type WsPrice = {
+  vm: string;
+  chain_id: string;
+  subscription_type: string;
+  price_per_million: number;
+};
